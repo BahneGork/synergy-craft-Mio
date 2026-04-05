@@ -145,10 +145,19 @@ h1 {
 
     .item-card:hover { transform: translateY(-5px); }
 
+    .badge-container {
+    display: flex;
+    flex-wrap: wrap; /* Allows badges to wrap to the next line */
+    gap: 4px;       /* Spacing between badges */
+    margin-bottom: 8px;
+    }
+        
     .card-header {
         background: #f4ebd0;
-        padding: 15px;
+        padding: 12px 15px; /* Tighter padding for more vertical room */
         border-bottom: 2px solid var(--gold);
+        display: flex;
+        flex-direction: column;
     }
 
     .class-badge {
@@ -156,15 +165,18 @@ h1 {
         color: white;
         padding: 2px 8px;
         border-radius: 4px;
-        font-size: 0.75rem;
+        font-size: 0.7rem; /* Slightly smaller to fit more */
         text-transform: uppercase;
         font-weight: bold;
+        white-space: nowrap; /* Prevents a single badge from splitting */
     }
 
     .item-title {
-        margin: 10px 0 0 0;
-        font-size: 1.25rem;
+        margin: 5px 0 0 0; /* Reduced margin */
+        font-size: 1.2rem;
+        line-height: 1.2;
         color: var(--ink);
+        font-family: 'MedievalSharp', cursive; /* Optional: gives titles more character */
     }
 
     .card-body { padding: 15px; }
@@ -372,8 +384,10 @@ function renderTable(data) {
         const card = document.createElement('div');
         card.className = 'item-card';
         
-        // Generate badges for all classes this item belongs to
-        const badgesHtml = entry.classes.map(cls => `<span class="class-badge" style="margin-right: 4px;">${cls}</span>`).join('');
+        // Generate all badges from the classes array
+        const badgesHtml = entry.classes.map(cls => 
+            `<span class="class-badge">${cls}</span>`
+        ).join('');
 
         const ingredientHtml = entry.ingredients.map(ing => {
             const parts = ing.resource.split(' ');
@@ -391,7 +405,9 @@ function renderTable(data) {
 
         card.innerHTML = `
             <div class="card-header">
-                <div class="badge-container" style="margin-bottom: 8px;">${badgesHtml}</div>
+                <div class="badge-container">
+                    ${badgesHtml}
+                </div>
                 <h2 class="item-title">${entry.item}</h2>
             </div>
             <div class="card-body">
