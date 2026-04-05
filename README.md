@@ -11,7 +11,6 @@ The **Masterwork Crafting Ledger** provides a centralized database of high-end c
 ### Key Features
 * **Class-Specific Filtering:** Quickly narrow down items relevant to your specific character class.
 * **Real-Time Search:** Search by item name or specific materials.
-* **Interactive Material Guides:** Click or tap any ingredient to reveal its specific drop location (e.g., Abyssal Hunts, Explorer Charts, or Master Dungeons).
 * **Responsive Design:** Optimized for use on a second monitor or mobile device while gaming.
 
 ---
@@ -37,7 +36,6 @@ This project is a collaborative effort by the **Synergy Guild** on Neverwinter.
 
 1.  **Search:** Use the search bar to find a specific item like the "Duergar Mercenary's Steel Rapier".
 2.  **Filter:** Use the dropdown menu to see all available Masterwork items for your class.
-3.  **Locate:** Click on an ingredient row to see a popup indicating the exact location or activity required to obtain that resource.
 
 ---
 
