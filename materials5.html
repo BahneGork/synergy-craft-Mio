@@ -169,48 +169,51 @@ h1 {
 
     .card-body { padding: 15px; }
 
-    /* Ingredient Rows */
-    .ingredient-row {
-        display: flex;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px inset #eee;
-        cursor: pointer;
-        position: relative;
-    }
+    /* Enhanced Ingredient Rows */
+.ingredient-row {
+    display: flex;
+    flex-direction: column; /* Stacks name and location */
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(176, 141, 68, 0.2); /* Faint gold divider */
+    cursor: default; /* No longer needs to look clickable */
+}
 
-    .qty {
-        background: #eee;
-        color: var(--crimson);
-        font-weight: bold;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-right: 10px;
-        min-width: 35px;
-        text-align: center;
-        font-size: 0.9rem;
-    }
+.qty-name-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
 
-    .name { font-size: 0.95rem; flex: 1; }
+.qty {
+    background: #eee;
+    color: var(--crimson);
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 10px;
+    min-width: 35px;
+    text-align: center;
+    font-size: 0.9rem;
+}
 
-    /* Location Popup (Tap to see) */
-    .location-popup {
-        display: none;
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        right: 0;
-        background: var(--ink);
-        color: #fff;
-        padding: 10px;
-        font-size: 0.8rem;
-        border-radius: 5px;
-        z-index: 10;
-        text-align: center;
-        box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
-    }
+.name { 
+    font-size: 0.95rem; 
+    font-weight: 700;
+    color: var(--ink);
+}
 
-    .show-loc .location-popup { display: block; }
+/* Clear, visible location text */
+.location-text {
+    font-size: 0.8rem;
+    color: #666; /* Subtle grey for the source */
+    padding-left: 45px; /* Aligns it under the name, skipping the Qty box */
+    font-style: italic;
+}
+
+/* Bold certain keywords for faster scanning */
+.location-text strong {
+    color: var(--gold);
+}
 
 .discord-link {
     color: #5865F2; /* Discord Blurple */
@@ -246,6 +249,7 @@ h1 {
             </div>
             <div class="filter-wrapper">
                 <select id="classFilter" onchange="filterData()">
+                    <option value="All">All Classes</option>
                     <option value="Barbarian">Barbarian</option>
                     <option value="Bard">Bard</option>
                     <option value="Cleric">Cleric</option>
@@ -324,19 +328,22 @@ h1 {
                 
                 // Create the ingredient list
                 const ingredientHtml = entry.ingredients.map(ing => {
-                    // Split "36x Druegarsteel Scrap" into "36x" and "Druegarsteel Scrap"
-                    const parts = ing.resource.split(' ');
-                    const qty = parts.shift();
-                    const name = parts.join(' ');
+    const parts = ing.resource.split(' ');
+    const qty = parts.shift();
+    const name = parts.join(' ');
 
-                    return `
-                        <div class="ingredient-row" onclick="toggleTip(event, this)">
-                            <span class="qty">${qty}</span>
-                            <span class="name">${name}</span>
-                            <div class="location-popup">${ing.location}</div>
-                        </div>
-                    `;
-                }).join('');
+    return `
+        <div class="ingredient-row">
+            <div class="qty-name-group">
+                <span class="qty">${qty}</span>
+                <span class="name">${name}</span>
+            </div>
+            <div class="location-text">
+                Source: <strong>${ing.location}</strong>
+            </div>
+        </div>
+    `;
+}).join('');
 
                 card.innerHTML = `
                     <div class="card-header">
