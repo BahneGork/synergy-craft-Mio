@@ -229,22 +229,13 @@
         flex-direction: column;
         padding: 10px 0;
         border-bottom: 1px solid rgba(176, 141, 68, 0.2);
-        cursor: pointer;
     }
 
     .qty-name-group {
         display: flex;
         align-items: center;
         margin-bottom: 4px;
-    }
-
-    .ingredient-check {
-        margin-right: 8px;
-        width: 16px;
-        height: 16px;
-        accent-color: var(--crimson);
-        cursor: pointer;
-        flex-shrink: 0;
+        gap: 8px;
     }
 
     .qty {
@@ -253,10 +244,10 @@
         font-weight: bold;
         padding: 2px 6px;
         border-radius: 4px;
-        margin-right: 10px;
         min-width: 35px;
         text-align: center;
         font-size: 0.9rem;
+        flex-shrink: 0;
         transition: background 0.2s, color 0.2s;
     }
 
@@ -264,35 +255,89 @@
         font-size: 0.95rem;
         font-weight: 700;
         color: var(--ink);
+        flex: 1;
         transition: color 0.2s, text-decoration 0.2s;
+    }
+
+    /* Counter control: [  5  / 24 ] */
+    .counter-group {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+
+    .counter-input {
+        width: 44px;
+        padding: 2px 4px;
+        border: 1px solid var(--gold);
+        background: rgba(255,255,255,0.7);
+        font-family: 'Lora', serif;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--ink);
+        text-align: center;
+        border-radius: 3px;
+        box-sizing: border-box;
+        /* hide spinner arrows */
+        -moz-appearance: textfield;
+    }
+
+    .counter-input::-webkit-outer-spin-button,
+    .counter-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .counter-input:focus {
+        outline: none;
+        border-color: var(--crimson);
+    }
+
+    .counter-sep {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .counter-max {
+        font-size: 0.8rem;
+        color: #888;
+        min-width: 28px;
     }
 
     .location-text {
         font-size: 0.8rem;
         color: #666;
-        padding-left: 45px;
+        padding-left: 4px;
         font-style: italic;
         transition: color 0.2s;
     }
 
     .location-text strong { color: var(--gold); }
 
-    /* Checked ingredient state */
-    .ingredient-row.checked .name {
+    /* Done ingredient state (collected >= needed) */
+    .ingredient-row.done .name {
         text-decoration: line-through;
         color: #aaa;
     }
 
-    .ingredient-row.checked .qty {
-        background: #ddd;
-        color: #aaa;
+    .ingredient-row.done .qty {
+        background: #c8e6c9;
+        color: #388e3c;
     }
 
-    .ingredient-row.checked .location-text {
+    .ingredient-row.done .counter-input {
+        background: #c8e6c9;
+        color: #388e3c;
+        border-color: #81c784;
+    }
+
+    .ingredient-row.done .location-text {
         color: #bbb;
     }
 
-    .ingredient-row.checked .location-text strong {
+    .ingredient-row.done .location-text strong {
         color: #bbb;
     }
 
@@ -904,24 +949,31 @@
             ).join('');
 
             const prog = appState.progress[entry.item] || [];
-            const collected = prog.filter(Boolean).length;
+            const doneCount = entry.ingredients.filter((ing, i) => (prog[i] || 0) >= ing.qty).length;
             const total = entry.ingredients.length;
 
             const ingredientHtml = entry.ingredients.map((ing, i) => {
-                const isChecked = !!prog[i];
+                const collected = prog[i] || 0;
+                const isDone = collected >= ing.qty;
                 return `
-                    <label class="ingredient-row${isChecked ? ' checked' : ''}">
+                    <div class="ingredient-row${isDone ? ' done' : ''}">
                         <div class="qty-name-group">
-                            <input type="checkbox" class="ingredient-check"
-                                   data-item="${escHtml(entry.item)}"
-                                   data-index="${i}"
-                                   ${isChecked ? 'checked' : ''}
-                                   onchange="toggleIngredient(this.dataset.item, +this.dataset.index, this.checked)">
                             <span class="qty">${ing.qty}x</span>
                             <span class="name">${escHtml(ing.name)}</span>
+                            <div class="counter-group">
+                                <input type="number" class="counter-input"
+                                       min="0" max="${ing.qty}"
+                                       value="${collected}"
+                                       data-item="${escHtml(entry.item)}"
+                                       data-index="${i}"
+                                       data-max="${ing.qty}"
+                                       oninput="setIngredientCount(this.dataset.item, +this.dataset.index, +this.dataset.max, +this.value)">
+                                <span class="counter-sep">/</span>
+                                <span class="counter-max">${ing.qty}</span>
+                            </div>
                         </div>
                         <div class="location-text">Source: <strong>${escHtml(ing.location)}</strong></div>
-                    </label>`;
+                    </div>`;
             }).join('');
 
             card.innerHTML = `
@@ -939,7 +991,7 @@
                 </div>
                 <div class="card-body">
                     <div class="progress-bar-row">
-                        <span class="progress-text" data-progress="${escHtml(entry.item)}">${collected} / ${total} collected</span>
+                        <span class="progress-text" data-progress="${escHtml(entry.item)}">${doneCount} / ${total} ingredients complete</span>
                     </div>
                     <div class="ingredient-list">${ingredientHtml}</div>
                 </div>`;
@@ -966,25 +1018,30 @@
     }
 
     // --- PROGRESS TRACKER ---
-    function toggleIngredient(itemName, index, checked) {
+    function setIngredientCount(itemName, index, max, value) {
+        const clamped = Math.max(0, Math.min(max, isNaN(value) ? 0 : value));
+
         if (!appState.progress[itemName]) {
             const entry = parsedCraftingData.find(e => e.item === itemName);
-            appState.progress[itemName] = new Array(entry ? entry.ingredients.length : 0).fill(false);
+            appState.progress[itemName] = new Array(entry ? entry.ingredients.length : 0).fill(0);
         }
-        appState.progress[itemName][index] = checked;
+        appState.progress[itemName][index] = clamped;
         saveProgress();
 
         // Targeted DOM update — no full re-render
-        const row = document.querySelector(`.ingredient-check[data-item="${CSS.escape(itemName)}"][data-index="${index}"]`)?.closest('.ingredient-row');
-        if (row) row.classList.toggle('checked', checked);
+        const input = document.querySelector(`.counter-input[data-item="${CSS.escape(itemName)}"][data-index="${index}"]`);
+        if (input && +input.value !== clamped) input.value = clamped;
+        const row = input?.closest('.ingredient-row');
+        if (row) row.classList.toggle('done', clamped >= max);
 
-        // Update progress counter
-        const prog = appState.progress[itemName];
+        // Update card progress counter
         const entry = parsedCraftingData.find(e => e.item === itemName);
-        const collected = prog.filter(Boolean).length;
-        const total = entry ? entry.ingredients.length : 0;
-        const counter = document.querySelector(`[data-progress="${CSS.escape(itemName)}"]`);
-        if (counter) counter.textContent = `${collected} / ${total} collected`;
+        if (entry) {
+            const prog = appState.progress[itemName] || [];
+            const doneCount = entry.ingredients.filter((ing, i) => (prog[i] || 0) >= ing.qty).length;
+            const counter = document.querySelector(`[data-progress="${CSS.escape(itemName)}"]`);
+            if (counter) counter.textContent = `${doneCount} / ${entry.ingredients.length} ingredients complete`;
+        }
 
         // Refresh panel if open
         if (appState.panelOpen) updatePanel();
@@ -1043,7 +1100,7 @@
                 }
                 aggregated[ing.name].qty += ing.qty;
                 aggregated[ing.name].locations.add(ing.location);
-                if (prog[i]) aggregated[ing.name].collected += ing.qty;
+                aggregated[ing.name].collected += Math.min(prog[i] || 0, ing.qty);
             });
         }
 
@@ -1064,14 +1121,15 @@
 
         const rows = sorted.map(([name, data]) => {
             const locationsHtml = [...data.locations].map(l => `<strong>${escHtml(l)}</strong>`).join(', ');
+            const isDone = data.collected >= data.qty;
             const collectedHtml = data.collected > 0
-                ? `<div class="shop-collected">${data.collected} / ${data.qty} collected</div>`
+                ? `<div class="shop-collected" style="${isDone ? 'color:#388e3c;font-weight:700;' : ''}">${data.collected} / ${data.qty} collected${isDone ? ' ✓' : ''}</div>`
                 : '';
             return `
-                <div class="shop-ingredient-row">
+                <div class="shop-ingredient-row" style="${isDone ? 'opacity:0.6;' : ''}">
                     <div class="shop-qty-name">
-                        <span class="shop-qty">${data.qty}x</span>
-                        <span class="shop-name">${escHtml(name)}</span>
+                        <span class="shop-qty" style="${isDone ? 'background:#c8e6c9;color:#388e3c;' : ''}">${data.qty}x</span>
+                        <span class="shop-name" style="${isDone ? 'text-decoration:line-through;color:#aaa;' : ''}">${escHtml(name)}</span>
                     </div>
                     ${collectedHtml}
                     <div class="shop-location">Source: ${locationsHtml}</div>
@@ -1108,6 +1166,8 @@
     function resetProgress() {
         appState.progress = {};
         storage.removeItem('synergy-crafting-progress');
+        storage.removeItem('synergy-crafting-shopping');
+        appState.selectedItems = new Set();
         filterData(); // full re-render restores all checkboxes to unchecked
         if (appState.panelOpen) updatePanel();
     }
