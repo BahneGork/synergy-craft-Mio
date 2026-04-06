@@ -1074,6 +1074,11 @@
                                       d.ingredients.some(ing => ing.name === appState.ingredientFilter);
             return matchesSearch && matchesClass && matchesIngredient;
         });
+        filtered.sort((a, b) => {
+            const aSelected = appState.selectedItems.has(a.item) ? 0 : 1;
+            const bSelected = appState.selectedItems.has(b.item) ? 0 : 1;
+            return aSelected - bSelected;
+        });
         renderTable(filtered);
     }
 
@@ -1134,18 +1139,8 @@
         }
         saveSelected();
 
-        // Targeted DOM update
-        const card = document.querySelector(`.item-card[data-item="${CSS.escape(itemName)}"]`);
-        if (card) {
-            const isSelected = appState.selectedItems.has(itemName);
-            card.classList.toggle('selected', isSelected);
-            const btn = card.querySelector('.select-btn');
-            if (btn) {
-                btn.classList.toggle('active', isSelected);
-                btn.setAttribute('aria-pressed', isSelected);
-                btn.innerHTML = isSelected ? '&#10003; In List' : '+ Add to List';
-            }
-        }
+        // Re-render to reorder (selected items float to top)
+        filterData();
 
         // Update header count
         document.getElementById('listCount').textContent = appState.selectedItems.size;
@@ -1258,7 +1253,7 @@
     // --- INITIAL LOAD ---
     loadState();
     document.getElementById('listCount').textContent = appState.selectedItems.size;
-    renderTable(parsedCraftingData);
+    filterData();
 </script>
 </body>
 </html>
