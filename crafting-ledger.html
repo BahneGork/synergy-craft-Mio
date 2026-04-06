@@ -1017,7 +1017,7 @@
                     <div class="ingredient-row${isDone ? ' done' : ''}">
                         <div class="qty-name-group">
                             <span class="qty">${ing.qty}x</span>
-                            <button class="name-btn" onclick="filterByIngredient(${JSON.stringify(ing.name)})">${escHtml(ing.name)}</button>
+                            <button class="name-btn" data-ingredient="${escHtml(ing.name)}" onclick="filterByIngredient(this.dataset.ingredient)">${escHtml(ing.name)}</button>
                             <div class="counter-group">
                                 <input type="number" class="counter-input"
                                        min="0" max="${ing.qty}"
