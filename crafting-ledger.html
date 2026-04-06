@@ -231,9 +231,9 @@ h1 {
     color: #5865F2; /* Discord Blurple */
     text-decoration: none;
     font-weight: bold;
-    font-size: 0.9rem;
-    display: inline-block;
-    margin-top: 8px;
+    /* Change font-size to inherit so it matches the .credits text exactly */
+    font-size: inherit; 
+    display: inline; /* Changed from inline-block to prevent vertical shifts */
     transition: 0.3s;
 }
 
