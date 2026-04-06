@@ -17,10 +17,10 @@
     body {
         background-color: #121212;
         margin: 0;
-        padding: 0; /* Changed to 0 to support sticky header edge-to-edge */
+        padding: 0;
         font-family: 'Lora', serif;
         display: flex;
-        justify-content: center; 
+        justify-content: center;
         align-items: flex-start;
         min-height: 100vh;
     }
@@ -48,7 +48,6 @@
         padding-top: 30px;
         border-bottom: 3px double var(--gold);
         margin-bottom: 30px;
-        /* Subtle shadow to indicate depth when scrolling */
         box-shadow: 0 10px 20px -10px rgba(0,0,0,0.15);
     }
 
@@ -60,7 +59,7 @@
     h1 {
         font-family: 'MedievalSharp', cursive;
         font-size: 2.8rem;
-        color: var(--crimson); 
+        color: var(--crimson);
         margin: 0 auto;
         letter-spacing: 2px;
     }
@@ -68,7 +67,7 @@
     .credits {
         font-style: italic;
         font-size: 1.1rem;
-        color: var(--ink); 
+        color: var(--ink);
         margin: 10px auto 0 auto;
     }
 
@@ -76,16 +75,18 @@
 
     .controls {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr auto;
         gap: 15px;
         padding-bottom: 20px;
         max-width: 900px;
         margin: 0 auto;
+        align-items: stretch;
     }
 
     @media (max-width: 600px) {
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
+        .list-toggle-btn { grid-column: 1; }
     }
 
     input, select {
@@ -96,6 +97,25 @@
         font-size: 1rem;
         box-sizing: border-box;
         font-family: 'Lora', serif;
+    }
+
+    .list-toggle-btn {
+        padding: 12px 18px;
+        border: 2px solid var(--gold);
+        background: var(--gold);
+        color: #fff;
+        font-size: 1rem;
+        font-family: 'Lora', serif;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.2s, color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .list-toggle-btn:hover {
+        background: var(--crimson);
+        border-color: var(--crimson);
     }
 
     /* --- ITEM GRID & CARDS --- */
@@ -113,10 +133,14 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        transition: transform 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .item-card:hover { transform: translateY(-5px); }
+
+    .item-card.selected {
+        box-shadow: 0 0 0 2px var(--crimson), 0 4px 6px rgba(0,0,0,0.1);
+    }
 
     .badge-container {
         display: flex;
@@ -124,13 +148,20 @@
         gap: 4px;
         margin-bottom: 8px;
     }
-        
+
     .card-header {
         background: #f4ebd0;
         padding: 12px 15px;
         border-bottom: 2px solid var(--gold);
         display: flex;
         flex-direction: column;
+    }
+
+    .card-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
     }
 
     .class-badge {
@@ -149,21 +180,71 @@
         line-height: 1.2;
         color: var(--ink);
         font-family: 'MedievalSharp', cursive;
+        flex: 1;
+    }
+
+    .select-btn {
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        font-family: 'Lora', serif;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 4px;
+        white-space: nowrap;
+        min-height: 30px;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        flex-shrink: 0;
+    }
+
+    .select-btn:hover {
+        background: var(--gold);
+        color: #fff;
+    }
+
+    .select-btn.active {
+        background: var(--crimson);
+        border-color: var(--crimson);
+        color: #fff;
     }
 
     .card-body { padding: 15px; }
+
+    .progress-bar-row {
+        padding: 6px 0 8px;
+        border-bottom: 1px solid rgba(176, 141, 68, 0.3);
+        margin-bottom: 4px;
+    }
+
+    .progress-text {
+        font-size: 0.8rem;
+        color: var(--gold);
+        font-style: italic;
+    }
 
     .ingredient-row {
         display: flex;
         flex-direction: column;
         padding: 10px 0;
         border-bottom: 1px solid rgba(176, 141, 68, 0.2);
+        cursor: pointer;
     }
 
     .qty-name-group {
         display: flex;
         align-items: center;
         margin-bottom: 4px;
+    }
+
+    .ingredient-check {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--crimson);
+        cursor: pointer;
+        flex-shrink: 0;
     }
 
     .qty {
@@ -176,12 +257,14 @@
         min-width: 35px;
         text-align: center;
         font-size: 0.9rem;
+        transition: background 0.2s, color 0.2s;
     }
 
-    .name { 
-        font-size: 0.95rem; 
+    .name {
+        font-size: 0.95rem;
         font-weight: 700;
         color: var(--ink);
+        transition: color 0.2s, text-decoration 0.2s;
     }
 
     .location-text {
@@ -189,9 +272,29 @@
         color: #666;
         padding-left: 45px;
         font-style: italic;
+        transition: color 0.2s;
     }
 
     .location-text strong { color: var(--gold); }
+
+    /* Checked ingredient state */
+    .ingredient-row.checked .name {
+        text-decoration: line-through;
+        color: #aaa;
+    }
+
+    .ingredient-row.checked .qty {
+        background: #ddd;
+        color: #aaa;
+    }
+
+    .ingredient-row.checked .location-text {
+        color: #bbb;
+    }
+
+    .ingredient-row.checked .location-text strong {
+        color: #bbb;
+    }
 
     .discord-link {
         color: #5865F2;
@@ -203,6 +306,187 @@
     .discord-link:hover {
         color: var(--crimson);
         text-decoration: underline;
+    }
+
+    /* --- SHOPPING PANEL --- */
+    .shopping-panel {
+        position: fixed;
+        top: 0;
+        right: -380px;
+        width: 360px;
+        height: 100vh;
+        background-color: var(--parchment);
+        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        border-left: 4px solid var(--gold);
+        z-index: 2000;
+        transition: right 0.3s ease;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.4);
+    }
+
+    .shopping-panel.open {
+        right: 0;
+    }
+
+    .panel-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1999;
+    }
+
+    .panel-backdrop.open {
+        display: block;
+    }
+
+    .panel-header {
+        padding: 20px;
+        border-bottom: 2px solid var(--gold);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background-color: var(--parchment);
+        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        flex-shrink: 0;
+    }
+
+    .panel-title {
+        font-family: 'MedievalSharp', cursive;
+        color: var(--crimson);
+        font-size: 1.4rem;
+        margin: 0;
+    }
+
+    .panel-close-btn {
+        background: transparent;
+        border: none;
+        color: var(--gold);
+        font-size: 1.4rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        line-height: 1;
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .panel-close-btn:hover { color: var(--crimson); }
+
+    .panel-content {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+    }
+
+    .panel-empty {
+        text-align: center;
+        font-style: italic;
+        color: #888;
+        margin-top: 40px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .panel-footer {
+        padding: 15px;
+        border-top: 2px solid var(--gold);
+        background-color: var(--parchment);
+        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        flex-shrink: 0;
+    }
+
+    .panel-reset-btn {
+        width: 100%;
+        padding: 10px;
+        background: transparent;
+        border: 2px solid var(--crimson);
+        color: var(--crimson);
+        font-family: 'Lora', serif;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .panel-reset-btn:hover {
+        background: var(--crimson);
+        color: #fff;
+    }
+
+    /* Shopping list rows */
+    .shop-section-header {
+        font-size: 0.75rem;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 16px 0 6px;
+        border-bottom: 1px solid rgba(176, 141, 68, 0.3);
+        padding-bottom: 4px;
+    }
+
+    .shop-ingredient-row {
+        display: flex;
+        flex-direction: column;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(176, 141, 68, 0.15);
+    }
+
+    .shop-qty-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 3px;
+    }
+
+    .shop-qty {
+        background: #eee;
+        color: var(--crimson);
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 4px;
+        min-width: 40px;
+        text-align: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .shop-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--ink);
+    }
+
+    .shop-collected {
+        font-size: 0.78rem;
+        color: var(--gold);
+        font-style: italic;
+        padding-left: 4px;
+        margin-bottom: 2px;
+    }
+
+    .shop-location {
+        font-size: 0.78rem;
+        color: #666;
+        font-style: italic;
+        padding-left: 4px;
+    }
+
+    .shop-location strong { color: var(--gold); }
+
+    @media (max-width: 600px) {
+        .shopping-panel {
+            width: 100vw;
+            right: -100vw;
+        }
+        .shopping-panel.open {
+            right: 0;
+        }
     }
 
 </style>
@@ -237,10 +521,26 @@
                     <option value="Wizard">Wizard</option>
                 </select>
             </div>
+            <button class="list-toggle-btn" onclick="togglePanel()" id="listToggleBtn">
+                Shopping List (<span id="listCount">0</span>)
+            </button>
         </div>
     </div>
     <div id="itemsGrid" class="items-grid"></div>
 </div>
+
+<!-- Shopping List Drawer -->
+<div id="shoppingPanel" class="shopping-panel" aria-hidden="true" aria-label="Shopping List">
+    <div class="panel-header">
+        <h2 class="panel-title">Shopping List</h2>
+        <button class="panel-close-btn" onclick="togglePanel()" aria-label="Close shopping list">&#x2715;</button>
+    </div>
+    <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
+    <div class="panel-footer">
+        <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
+    </div>
+</div>
+<div id="panelBackdrop" class="panel-backdrop" onclick="togglePanel()"></div>
 
 <script>
     const craftingData = [
@@ -280,7 +580,7 @@
     "classes": ["Cleric", "Warlock", "Wizard"],
     "item": "Scintillant Amulet",
     "ingredients": [
-      { "resource": "17x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "17x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "3x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -299,7 +599,7 @@
     "item": "Scintillant Sash",
     "ingredients": [
       { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "4x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "4x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -315,7 +615,7 @@
     "item": "Darklake Ward Ring",
     "ingredients": [
       { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "2x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "2x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "16x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
@@ -331,7 +631,7 @@
     "item": "Duergar Mercenary's Steel Rapier",
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -351,7 +651,7 @@
     "item": "Duergar Mercenary's Steel Lute",
     "ingredients": [
       { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "3x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "3x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -367,7 +667,7 @@
     "item": "Duergar Mercenary's Steel Hammer",
     "ingredients": [
       { "resource": "16x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "1x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "1x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Shroomsap Spores", "location": "Abyssal Hunt Mod: Itty Bitty" },
       { "resource": "8x Goristro Hide", "location": "Advanced Demonweb Pits" },
@@ -383,7 +683,7 @@
     "item": "Duergar Mercenary's Steel Sword Knot",
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "3x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -398,12 +698,12 @@
     "classes": ["Cleric"],
     "item": "Duergar Mercenary's Steel Symbol",
     "ingredients": [
-      { "resource": "40x Mushroom Log", "location": "Menzoberranzan Explorer Chart" },
+      { "resource": "40x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "6x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "22x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "5x Terebinth", "location": "Stronghold" },
       { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "8x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "8x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "16x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
       { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
@@ -418,7 +718,7 @@
     "item": "Duergar Mercenary's Steel Icon",
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -432,7 +732,7 @@
     "classes": ["Fighter"],
     "item": "Duergar Mercenary's Steel Longsword",
     "ingredients": [
-      { "resource": "2x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "2x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "3x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -450,7 +750,7 @@
     "item": "Duergar Mercenary's Steel Shield",
     "ingredients": [
       { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "4x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "4x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -466,7 +766,7 @@
     "item": "Duergar Mercenary's Steel Mace",
     "ingredients": [
       { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "3x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "3x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -483,7 +783,7 @@
     "item": "Duergar Mercenary's Steel Bulwark",
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -501,12 +801,12 @@
     "classes": ["Warlock"],
     "item": "Duergar Mercenary's Steel Pactblade",
     "ingredients": [
-      { "resource": "24x Mushroom Log", "location": "Menzoberranzan Explorer Chart" },
+      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "2x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "25x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "5x Terebinth", "location": "Stronghold" },
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "9x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "9x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "24x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
       { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
@@ -519,12 +819,12 @@
     "classes": ["Warlock"],
     "item": "Duergar Mercenary's Steel Book",
     "ingredients": [
-      { "resource": "24x Mushroom Log", "location": "Menzoberranzan Explorer Chart" },
+      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "26x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "44x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "10x Terebinth", "location": "Stronghold" },
       { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "1x Fallen God’s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "1x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "2x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "24x Fluorescent Flora", "location": "Master Demonweb Pits" },
       { "resource": "12x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
@@ -535,62 +835,292 @@
   }
 ];
 
+    // --- PARSE INFRASTRUCTURE ---
+    function parseIngredient(resource) {
+        const match = resource.match(/^(\d+)x\s+(.+)$/);
+        return match
+            ? { qty: parseInt(match[1], 10), name: match[2] }
+            : { qty: 0, name: resource };
+    }
+
+    const parsedCraftingData = craftingData.map(entry => ({
+        ...entry,
+        ingredients: entry.ingredients.map(ing => ({
+            location: ing.location,
+            ...parseIngredient(ing.resource)
+        }))
+    }));
+
+    // --- STATE LAYER ---
+    const appState = {
+        selectedItems: new Set(),
+        progress: {},
+        panelOpen: false
+    };
+
+    // localStorage helpers with fallback for browsers that block it on file://
+    let storage;
+    try {
+        localStorage.setItem('__test__', '1');
+        localStorage.removeItem('__test__');
+        storage = localStorage;
+    } catch (e) {
+        storage = { _data: {}, getItem(k) { return this._data[k] ?? null; }, setItem(k, v) { this._data[k] = v; }, removeItem(k) { delete this._data[k]; } };
+    }
+
+    function loadState() {
+        try {
+            const prog = storage.getItem('synergy-crafting-progress');
+            if (prog) appState.progress = JSON.parse(prog);
+            const shop = storage.getItem('synergy-crafting-shopping');
+            if (shop) appState.selectedItems = new Set(JSON.parse(shop));
+        } catch (e) {
+            appState.progress = {};
+            appState.selectedItems = new Set();
+        }
+    }
+
+    function saveProgress() {
+        storage.setItem('synergy-crafting-progress', JSON.stringify(appState.progress));
+    }
+
+    function saveSelected() {
+        storage.setItem('synergy-crafting-shopping', JSON.stringify([...appState.selectedItems]));
+    }
+
+    // --- RENDER ---
     function renderTable(data) {
         const grid = document.getElementById('itemsGrid');
         grid.innerHTML = '';
 
         data.forEach(entry => {
             const card = document.createElement('div');
-            card.className = 'item-card';
-            
-            const badgesHtml = entry.classes.map(cls => 
+            const isSelected = appState.selectedItems.has(entry.item);
+            card.className = 'item-card' + (isSelected ? ' selected' : '');
+            card.dataset.item = entry.item;
+
+            const badgesHtml = entry.classes.map(cls =>
                 `<span class="class-badge">${cls}</span>`
             ).join('');
 
-            const ingredientHtml = entry.ingredients.map(ing => {
-                const parts = ing.resource.split(' ');
-                const qty = parts.shift();
-                const name = parts.join(' ');
+            const prog = appState.progress[entry.item] || [];
+            const collected = prog.filter(Boolean).length;
+            const total = entry.ingredients.length;
+
+            const ingredientHtml = entry.ingredients.map((ing, i) => {
+                const isChecked = !!prog[i];
                 return `
-                    <div class="ingredient-row">
+                    <label class="ingredient-row${isChecked ? ' checked' : ''}">
                         <div class="qty-name-group">
-                            <span class="qty">${qty}</span>
-                            <span class="name">${name}</span>
+                            <input type="checkbox" class="ingredient-check"
+                                   data-item="${escHtml(entry.item)}"
+                                   data-index="${i}"
+                                   ${isChecked ? 'checked' : ''}
+                                   onchange="toggleIngredient(this.dataset.item, +this.dataset.index, this.checked)">
+                            <span class="qty">${ing.qty}x</span>
+                            <span class="name">${escHtml(ing.name)}</span>
                         </div>
-                        <div class="location-text">Source: <strong>${ing.location}</strong></div>
-                    </div>`;
+                        <div class="location-text">Source: <strong>${escHtml(ing.location)}</strong></div>
+                    </label>`;
             }).join('');
 
             card.innerHTML = `
                 <div class="card-header">
-                    <div class="badge-container">
-                        ${badgesHtml}
+                    <div class="card-header-top">
+                        <div class="badge-container">${badgesHtml}</div>
+                        <button class="select-btn${isSelected ? ' active' : ''}"
+                                data-item="${escHtml(entry.item)}"
+                                aria-pressed="${isSelected}"
+                                onclick="toggleSelected(this.dataset.item)">
+                            ${isSelected ? '&#10003; In List' : '+ Add to List'}
+                        </button>
                     </div>
-                    <h2 class="item-title">${entry.item}</h2>
+                    <h2 class="item-title">${escHtml(entry.item)}</h2>
                 </div>
                 <div class="card-body">
+                    <div class="progress-bar-row">
+                        <span class="progress-text" data-progress="${escHtml(entry.item)}">${collected} / ${total} collected</span>
+                    </div>
                     <div class="ingredient-list">${ingredientHtml}</div>
                 </div>`;
-            
+
             grid.appendChild(card);
         });
+    }
+
+    function escHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     function filterData() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal = document.getElementById('classFilter').value;
-        
-        const filtered = craftingData.filter(d => {
-            const matchesSearch = d.item.toLowerCase().includes(searchVal) || 
+
+        const filtered = parsedCraftingData.filter(d => {
+            const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
                                  d.classes.some(cls => cls.toLowerCase().includes(searchVal));
-            const matchesClass = (classVal === "All" || d.classes.includes(classVal));
+            const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
             return matchesSearch && matchesClass;
         });
         renderTable(filtered);
     }
 
-    // Initial Load
-    renderTable(craftingData);
+    // --- PROGRESS TRACKER ---
+    function toggleIngredient(itemName, index, checked) {
+        if (!appState.progress[itemName]) {
+            const entry = parsedCraftingData.find(e => e.item === itemName);
+            appState.progress[itemName] = new Array(entry ? entry.ingredients.length : 0).fill(false);
+        }
+        appState.progress[itemName][index] = checked;
+        saveProgress();
+
+        // Targeted DOM update — no full re-render
+        const row = document.querySelector(`.ingredient-check[data-item="${CSS.escape(itemName)}"][data-index="${index}"]`)?.closest('.ingredient-row');
+        if (row) row.classList.toggle('checked', checked);
+
+        // Update progress counter
+        const prog = appState.progress[itemName];
+        const entry = parsedCraftingData.find(e => e.item === itemName);
+        const collected = prog.filter(Boolean).length;
+        const total = entry ? entry.ingredients.length : 0;
+        const counter = document.querySelector(`[data-progress="${CSS.escape(itemName)}"]`);
+        if (counter) counter.textContent = `${collected} / ${total} collected`;
+
+        // Refresh panel if open
+        if (appState.panelOpen) updatePanel();
+    }
+
+    // --- SHOPPING LIST SELECTION ---
+    function toggleSelected(itemName) {
+        if (appState.selectedItems.has(itemName)) {
+            appState.selectedItems.delete(itemName);
+        } else {
+            appState.selectedItems.add(itemName);
+        }
+        saveSelected();
+
+        // Targeted DOM update
+        const card = document.querySelector(`.item-card[data-item="${CSS.escape(itemName)}"]`);
+        if (card) {
+            const isSelected = appState.selectedItems.has(itemName);
+            card.classList.toggle('selected', isSelected);
+            const btn = card.querySelector('.select-btn');
+            if (btn) {
+                btn.classList.toggle('active', isSelected);
+                btn.setAttribute('aria-pressed', isSelected);
+                btn.innerHTML = isSelected ? '&#10003; In List' : '+ Add to List';
+            }
+        }
+
+        // Update header count
+        document.getElementById('listCount').textContent = appState.selectedItems.size;
+
+        if (appState.panelOpen) updatePanel();
+    }
+
+    // --- SHOPPING PANEL ---
+    function togglePanel() {
+        appState.panelOpen = !appState.panelOpen;
+        const panel = document.getElementById('shoppingPanel');
+        const backdrop = document.getElementById('panelBackdrop');
+        panel.classList.toggle('open', appState.panelOpen);
+        backdrop.classList.toggle('open', appState.panelOpen);
+        panel.setAttribute('aria-hidden', !appState.panelOpen);
+        if (appState.panelOpen) updatePanel();
+    }
+
+    function buildShoppingList() {
+        const aggregated = {};
+
+        for (const itemName of appState.selectedItems) {
+            const entry = parsedCraftingData.find(e => e.item === itemName);
+            if (!entry) continue;
+            const prog = appState.progress[itemName] || [];
+
+            entry.ingredients.forEach((ing, i) => {
+                if (!aggregated[ing.name]) {
+                    aggregated[ing.name] = { qty: 0, locations: new Set(), collected: 0 };
+                }
+                aggregated[ing.name].qty += ing.qty;
+                aggregated[ing.name].locations.add(ing.location);
+                if (prog[i]) aggregated[ing.name].collected += ing.qty;
+            });
+        }
+
+        return aggregated;
+    }
+
+    function updatePanel() {
+        const content = document.getElementById('shoppingContent');
+        document.getElementById('listCount').textContent = appState.selectedItems.size;
+
+        if (appState.selectedItems.size === 0) {
+            content.innerHTML = '<p class="panel-empty">No items added yet.<br>Click <strong>+ Add to List</strong> on any item card to begin.</p>';
+            return;
+        }
+
+        const aggregated = buildShoppingList();
+        const sorted = Object.entries(aggregated).sort((a, b) => a[0].localeCompare(b[0]));
+
+        const rows = sorted.map(([name, data]) => {
+            const locationsHtml = [...data.locations].map(l => `<strong>${escHtml(l)}</strong>`).join(', ');
+            const collectedHtml = data.collected > 0
+                ? `<div class="shop-collected">${data.collected} / ${data.qty} collected</div>`
+                : '';
+            return `
+                <div class="shop-ingredient-row">
+                    <div class="shop-qty-name">
+                        <span class="shop-qty">${data.qty}x</span>
+                        <span class="shop-name">${escHtml(name)}</span>
+                    </div>
+                    ${collectedHtml}
+                    <div class="shop-location">Source: ${locationsHtml}</div>
+                </div>`;
+        }).join('');
+
+        const itemsLabel = appState.selectedItems.size === 1 ? '1 item' : `${appState.selectedItems.size} items`;
+        content.innerHTML = `
+            <div class="shop-section-header">${itemsLabel} &mdash; ${sorted.length} ingredient${sorted.length !== 1 ? 's' : ''} total</div>
+            ${rows}`;
+    }
+
+    // --- RESET ---
+    let resetConfirmTimer = null;
+
+    function confirmReset() {
+        const btn = document.getElementById('resetBtn');
+        if (resetConfirmTimer) {
+            // Second click — execute reset
+            clearTimeout(resetConfirmTimer);
+            resetConfirmTimer = null;
+            btn.textContent = 'Reset All Progress';
+            resetProgress();
+        } else {
+            // First click — ask for confirmation
+            btn.textContent = 'Confirm Reset?';
+            resetConfirmTimer = setTimeout(() => {
+                btn.textContent = 'Reset All Progress';
+                resetConfirmTimer = null;
+            }, 2500);
+        }
+    }
+
+    function resetProgress() {
+        appState.progress = {};
+        storage.removeItem('synergy-crafting-progress');
+        filterData(); // full re-render restores all checkboxes to unchecked
+        if (appState.panelOpen) updatePanel();
+    }
+
+    // Close panel with Escape key
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && appState.panelOpen) togglePanel();
+    });
+
+    // --- INITIAL LOAD ---
+    loadState();
+    document.getElementById('listCount').textContent = appState.selectedItems.size;
+    renderTable(parsedCraftingData);
 </script>
 </body>
 </html>
