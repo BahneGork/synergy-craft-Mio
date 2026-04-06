@@ -316,6 +316,59 @@
 
     .location-text strong { color: var(--gold); }
 
+    /* Clickable ingredient name */
+    .name-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+        flex: 1;
+        transition: color 0.15s;
+    }
+
+    .name-btn:hover {
+        color: var(--crimson);
+        text-decoration: underline dotted;
+    }
+
+    /* Active ingredient filter banner */
+    .ingredient-filter-banner {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        background: var(--crimson);
+        color: #fff;
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        font-family: 'Lora', serif;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .ingredient-filter-banner.active { display: flex; }
+
+    .ingredient-filter-banner strong { font-style: italic; }
+
+    .clear-filter-btn {
+        margin-left: auto;
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.5);
+        color: #fff;
+        padding: 3px 10px;
+        font-family: 'Lora', serif;
+        font-size: 0.8rem;
+        cursor: pointer;
+        border-radius: 3px;
+        white-space: nowrap;
+    }
+
+    .clear-filter-btn:hover { background: rgba(255,255,255,0.35); }
+
     /* Done ingredient state (collected >= needed) */
     .ingredient-row.done .name {
         text-decoration: line-through;
@@ -570,6 +623,10 @@
                 Shopping List (<span id="listCount">0</span>)
             </button>
         </div>
+    </div>
+    <div id="ingredientFilterBanner" class="ingredient-filter-banner">
+        Showing items requiring: <strong id="ingredientFilterLabel"></strong>
+        <button class="clear-filter-btn" onclick="clearIngredientFilter()">&#x2715; Clear</button>
     </div>
     <div id="itemsGrid" class="items-grid"></div>
 </div>
@@ -900,7 +957,8 @@
     const appState = {
         selectedItems: new Set(),
         progress: {},
-        panelOpen: false
+        panelOpen: false,
+        ingredientFilter: null
     };
 
     // localStorage helpers with fallback for browsers that block it on file://
@@ -959,7 +1017,7 @@
                     <div class="ingredient-row${isDone ? ' done' : ''}">
                         <div class="qty-name-group">
                             <span class="qty">${ing.qty}x</span>
-                            <span class="name">${escHtml(ing.name)}</span>
+                            <button class="name-btn" onclick="filterByIngredient(${JSON.stringify(ing.name)})">${escHtml(ing.name)}</button>
                             <div class="counter-group">
                                 <input type="number" class="counter-input"
                                        min="0" max="${ing.qty}"
@@ -1012,9 +1070,29 @@
             const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
                                  d.classes.some(cls => cls.toLowerCase().includes(searchVal));
             const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
-            return matchesSearch && matchesClass;
+            const matchesIngredient = !appState.ingredientFilter ||
+                                      d.ingredients.some(ing => ing.name === appState.ingredientFilter);
+            return matchesSearch && matchesClass && matchesIngredient;
         });
         renderTable(filtered);
+    }
+
+    function filterByIngredient(name) {
+        // Toggle off if clicking the same ingredient again
+        if (appState.ingredientFilter === name) {
+            clearIngredientFilter();
+            return;
+        }
+        appState.ingredientFilter = name;
+        document.getElementById('ingredientFilterLabel').textContent = name;
+        document.getElementById('ingredientFilterBanner').classList.add('active');
+        filterData();
+    }
+
+    function clearIngredientFilter() {
+        appState.ingredientFilter = null;
+        document.getElementById('ingredientFilterBanner').classList.remove('active');
+        filterData();
     }
 
     // --- PROGRESS TRACKER ---
