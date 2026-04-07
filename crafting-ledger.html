@@ -1671,7 +1671,7 @@
         itemsInView.forEach(itemName => {
             const checked = !appState.locExcluded.has(itemName);
             const label = document.createElement('label');
-            label.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; font-family:"Lora",serif;';
+            label.style.cssText = 'display:grid; grid-template-columns:16px 1fr; gap:4px 6px; align-items:start; font-size:0.85rem; cursor:pointer; font-family:"Lora",serif;';
             const cb = document.createElement('input');
             cb.type = 'checkbox';
             cb.checked = checked;
