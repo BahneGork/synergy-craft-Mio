@@ -422,17 +422,9 @@
         color: #aaa;
     }
 
-    /* Counter control: [  5  / 24 ] */
-    .counter-group {
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        flex-shrink: 0;
-        margin-left: auto;
-    }
-
+    /* Location table gathered input */
     .counter-input {
-        width: 44px;
+        width: 56px;
         padding: 2px 4px;
         border: 1px solid var(--gold);
         background: rgba(255,255,255,0.7);
@@ -456,17 +448,6 @@
     .counter-input:focus {
         outline: none;
         border-color: var(--crimson);
-    }
-
-    .counter-sep {
-        font-size: 0.8rem;
-        color: #888;
-    }
-
-    .counter-max {
-        font-size: 0.8rem;
-        color: #888;
-        min-width: 28px;
     }
 
     .location-text {
@@ -791,6 +772,7 @@
         </div>
         <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
         <div class="panel-footer">
+            <button class="panel-reset-btn" id="resetGatheredBtn" onclick="confirmResetGathered()">Reset Gathered</button>
             <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
             <div class="export-btn-row">
                 <button class="export-btn" id="exportTxtBtn" onclick="exportTxt()">TXT</button>
@@ -834,7 +816,7 @@
                         <input type="checkbox" id="exclusiveFilter" onchange="filterData()"> this class only
                     </label>
                 </div>
-                <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Location View</button>
+                <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Gathering ledger by location</button>
             </div>
         </div>
 
@@ -1323,13 +1305,14 @@
     let parsedCraftingData = buildParsedData(craftingData);
 
     // Maps ingredient name → [{entry, ing, i}] for the currently rendered location view.
-    // Populated by renderLocationTable(); used by setLocGathered() and setIngredientCount().
+    // Populated by renderLocationTable(); used by setLocGathered().
     const locSourceMap = new Map();
 
     // --- STATE LAYER ---
     const appState = {
         selectedItems: new Set(),
         progress: {},
+        locGathered: {},         // raw gathered value per ingredient name (location view)
         abyssalMods: new Set(),  // which Abyssal Hunt mods are checked
         locExcluded: new Set(),  // item names excluded from location view totals
         view: 'cards'
@@ -1351,14 +1334,18 @@
             if (prog) appState.progress = JSON.parse(prog);
             const shop = storage.getItem('synergy-crafting-shopping');
             if (shop) appState.selectedItems = new Set(JSON.parse(shop));
+            const locG = storage.getItem('synergy-crafting-loc-gathered');
+            if (locG) appState.locGathered = JSON.parse(locG);
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
+            appState.locGathered = {};
         }
     }
 
     function saveProgress() {
         storage.setItem('synergy-crafting-progress', JSON.stringify(appState.progress));
+        storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
     }
 
     function saveSelected() {
@@ -1383,27 +1370,26 @@
         renderLocationTable();
     }
 
-    /** Sets the location-view gathered counter for one ingredient. Writes to appState.progress for every source item (capped at that item's qty) and syncs the card view DOM. Single source of truth is appState.progress — no separate storage key. */
+    /** Sets the location-view gathered counter for one ingredient. Stores raw value in locGathered, writes capped values to per-item progress, and syncs the card view DOM. */
     function setLocGathered(ingName, rawValue) {
         const v = Math.max(0, isNaN(rawValue) ? 0 : rawValue);
 
-        // Update per-item progress and card grid DOM for every source item
-        const sources = locSourceMap.get(ingName) || [];
-        sources.forEach(({ entry, ing, i }) => {
-            const clamped = Math.min(v, ing.qty);
-            if (!appState.progress[entry.item])
-                appState.progress[entry.item] = new Array(entry.ingredients.length).fill(0);
-            appState.progress[entry.item][i] = clamped;
+        // Store raw entered value — used by buildShoppingList and renderLocationTable
+        appState.locGathered[ingName] = v;
 
-            const cardInput = document.querySelector(`input.counter-input[data-item="${CSS.escape(entry.item)}"][data-index="${i}"]`);
-            if (cardInput && +cardInput.value !== clamped) cardInput.value = clamped;
-            const row = cardInput?.closest('.ingredient-row');
-            if (row) row.classList.toggle('done', clamped >= ing.qty);
-
-            const prog = appState.progress[entry.item];
-            const doneCount = entry.ingredients.filter((ii, ji) => (prog[ji] || 0) >= ii.qty).length;
-            const counter = document.querySelector(`[data-progress="${CSS.escape(entry.item)}"]`);
-            if (counter) counter.textContent = `${doneCount} / ${entry.ingredients.length} ingredients complete`;
+        // Update done state on card ingredient rows and card progress counters
+        const affectedItems = new Set();
+        document.querySelectorAll(`.ingredient-row[data-ing="${CSS.escape(ingName)}"]`).forEach(row => {
+            row.classList.toggle('done', v >= +row.dataset.qty);
+            const card = row.closest('[data-item]');
+            if (card) affectedItems.add(card.dataset.item);
+        });
+        affectedItems.forEach(itemName => {
+            const itemEntry = parsedCraftingData.find(e => e.item === itemName);
+            if (!itemEntry) return;
+            const doneCount = itemEntry.ingredients.filter(ii => (appState.locGathered[ii.name] || 0) >= ii.qty).length;
+            const counter = document.querySelector(`[data-progress="${CSS.escape(itemName)}"]`);
+            if (counter) counter.textContent = `${doneCount} / ${itemEntry.ingredients.length} ingredients complete`;
         });
 
         saveProgress();
@@ -1447,29 +1433,16 @@
                 `<span class="class-badge">${cls}</span>`
             ).join('');
 
-            const prog = appState.progress[entry.item] || [];
-            const doneCount = entry.ingredients.filter((ing, i) => (prog[i] || 0) >= ing.qty).length;
             const total = entry.ingredients.length;
+            const doneCount = entry.ingredients.filter(ing => (appState.locGathered[ing.name] || 0) >= ing.qty).length;
 
-            const ingredientHtml = entry.ingredients.map((ing, i) => {
-                const collected = prog[i] || 0;
-                const isDone = collected >= ing.qty;
+            const ingredientHtml = entry.ingredients.map((ing) => {
+                const isDone = (appState.locGathered[ing.name] || 0) >= ing.qty;
                 return `
-                    <div class="ingredient-row${isDone ? ' done' : ''}">
+                    <div class="ingredient-row${isDone ? ' done' : ''}" data-ing="${escHtml(ing.name)}" data-qty="${ing.qty}">
                         <div class="qty-name-group">
                             <span class="qty">${ing.qty}x</span>
                             <button class="name-btn ${getColorClass(ing.name)}" data-ingredient="${escHtml(ing.name)}" onclick="showIngredientUses(this.dataset.ingredient)">${escHtml(ing.name)}</button>
-                            <div class="counter-group">
-                                <input type="number" class="counter-input"
-                                       min="0" max="${ing.qty}"
-                                       value="${collected}"
-                                       data-item="${escHtml(entry.item)}"
-                                       data-index="${i}"
-                                       data-max="${ing.qty}"
-                                       oninput="setIngredientCount(this.dataset.item, +this.dataset.index, +this.dataset.max, +this.value)">
-                                <span class="counter-sep">/</span>
-                                <span class="counter-max">${ing.qty}</span>
-                            </div>
                         </div>
                         <div class="location-text">Source: <strong>${escHtml(ing.location)}</strong></div>
                     </div>`;
@@ -1560,59 +1533,6 @@
             </div>`).join('');
     }
 
-    // --- PROGRESS TRACKER ---
-    /** Updates gathered count for one ingredient. Clamps value, saves to localStorage, targeted DOM update — no full re-render. */
-    function setIngredientCount(itemName, index, max, value) {
-        const clamped = Math.max(0, Math.min(max, isNaN(value) ? 0 : value));
-
-        if (!appState.progress[itemName]) {
-            const entry = parsedCraftingData.find(e => e.item === itemName);
-            appState.progress[itemName] = new Array(entry ? entry.ingredients.length : 0).fill(0);
-        }
-        appState.progress[itemName][index] = clamped;
-        saveProgress();
-
-        // Targeted DOM update — no full re-render
-        const input = document.querySelector(`.counter-input[data-item="${CSS.escape(itemName)}"][data-index="${index}"]`);
-        if (input && +input.value !== clamped) input.value = clamped;
-        const row = input?.closest('.ingredient-row');
-        if (row) row.classList.toggle('done', clamped >= max);
-
-        // Update card progress counter
-        const entry = parsedCraftingData.find(e => e.item === itemName);
-        if (entry) {
-            const prog = appState.progress[itemName] || [];
-            const doneCount = entry.ingredients.filter((ing, i) => (prog[i] || 0) >= ing.qty).length;
-            const counter = document.querySelector(`[data-progress="${CSS.escape(itemName)}"]`);
-            if (counter) counter.textContent = `${doneCount} / ${entry.ingredients.length} ingredients complete`;
-        }
-
-        // Refresh panel if open
-        updatePanel();
-
-        // Sync location table counter if location view is visible
-        if (appState.view === 'location') {
-            const locEntry = parsedCraftingData.find(e => e.item === itemName);
-            const ingName  = locEntry?.ingredients[index]?.name;
-            if (ingName) {
-                const srcs = locSourceMap.get(ingName) || [];
-                const maxG = srcs.length
-                    ? Math.max(...srcs.map(s => Math.min((appState.progress[s.entry.item]||[])[s.i]||0, s.ing.qty)))
-                    : clamped;
-                const locInput = document.querySelector(`#locationTableBody input[data-ing="${CSS.escape(ingName)}"]`);
-                if (locInput) {
-                    locInput.value = maxG;
-                    const tr = locInput.closest('tr');
-                    if (tr) {
-                        tr.style.opacity = maxG >= +locInput.dataset.total ? '0.5' : '1';
-                        tr.querySelectorAll('.loc-item-label').forEach(s =>
-                            s.classList.toggle('loc-item-met', maxG >= +s.dataset.itemQty));
-                    }
-                }
-            }
-        }
-    }
-
     // --- SHOPPING LIST SELECTION ---
     /** Adds/removes an item from the shopping list. Saves to localStorage and re-renders to re-sort. */
     function toggleSelected(itemName) {
@@ -1645,9 +1565,18 @@
                 }
                 aggregated[ing.name].qty += ing.qty;
                 aggregated[ing.name].locations.add(ing.location);
+                // Only sum per-item progress here; locGathered overrides are applied below
                 aggregated[ing.name].collected += Math.min(prog[i] || 0, ing.qty);
             });
         }
+
+        // For ingredients tracked via location view, use the raw entered value instead of the
+        // sum of per-item capped values (which overcounts when multiple items share an ingredient)
+        Object.keys(aggregated).forEach(ingName => {
+            if (appState.locGathered[ingName] !== undefined) {
+                aggregated[ingName].collected = Math.min(appState.locGathered[ingName], aggregated[ingName].qty);
+            }
+        });
 
         return aggregated;
     }
@@ -1712,10 +1641,39 @@
 
     function resetProgress() {
         appState.progress = {};
+        appState.locGathered = {};
         storage.removeItem('synergy-crafting-progress');
+        storage.removeItem('synergy-crafting-loc-gathered');
         storage.removeItem('synergy-crafting-shopping');
         appState.selectedItems = new Set();
         filterData(); // full re-render restores all checkboxes to unchecked
+        updatePanel();
+    }
+
+    let resetGatheredConfirmTimer = null;
+
+    function confirmResetGathered() {
+        const btn = document.getElementById('resetGatheredBtn');
+        if (resetGatheredConfirmTimer) {
+            clearTimeout(resetGatheredConfirmTimer);
+            resetGatheredConfirmTimer = null;
+            btn.textContent = 'Reset Gathered';
+            resetGathered();
+        } else {
+            btn.textContent = 'Confirm?';
+            resetGatheredConfirmTimer = setTimeout(() => {
+                btn.textContent = 'Reset Gathered';
+                resetGatheredConfirmTimer = null;
+            }, 2500);
+        }
+    }
+
+    function resetGathered() {
+        appState.progress = {};
+        appState.locGathered = {};
+        storage.removeItem('synergy-crafting-progress');
+        storage.removeItem('synergy-crafting-loc-gathered');
+        filterData();
         updatePanel();
     }
 
@@ -1733,7 +1691,7 @@
         document.getElementById('locItemSection').style.display   = inLocation ? 'flex' : 'none';
 
         const btn = document.getElementById('viewToggleBtn');
-        btn.textContent = inLocation ? '⊠ Card View' : '⊞ Location View';
+        btn.textContent = inLocation ? '⊠ Item cards' : '⊞ Gathering ledger by location';
         btn.classList.toggle('active', inLocation);
 
         if (inLocation) renderLocationTable();
@@ -1775,7 +1733,7 @@
         });
 
         // Populate locSourceMap from all pairs (before exclusion) so setLocGathered
-        // and setIngredientCount can find sources even for excluded items
+        // can find sources even for excluded items
         locSourceMap.clear();
         pairs.forEach(({ entry, ing, i }) => {
             if (!locSourceMap.has(ing.name)) locSourceMap.set(ing.name, []);
@@ -1824,11 +1782,14 @@
 
         // One row per ingredient, sorted alphabetically
         [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([ingName, g]) => {
-            // Derive gathered from progress: max of capped gathered across all sources for this ingredient
+            // Derive gathered: use raw locGathered value if set (persists across re-renders),
+            // otherwise fall back to max of capped per-item progress (card view fallback)
             const allSrcs = locSourceMap.get(ingName) || [];
-            const gathered = allSrcs.length
-                ? Math.max(...allSrcs.map(s => Math.min((appState.progress[s.entry.item]||[])[s.i]||0, s.ing.qty)))
-                : 0;
+            const gathered = appState.locGathered[ingName] !== undefined
+                ? appState.locGathered[ingName]
+                : (allSrcs.length
+                    ? Math.max(...allSrcs.map(s => Math.min((appState.progress[s.entry.item]||[])[s.i]||0, s.ing.qty)))
+                    : 0);
             const isDone = gathered >= g.totalQty;
             const tr = document.createElement('tr');
             if (isDone) tr.style.opacity = '0.5';
@@ -2018,18 +1979,19 @@
 
             <h3>Progress Tracking</h3>
             <ul>
-                <li>Each ingredient has a <strong>gathered counter</strong> — type in how many you have</li>
-                <li>When gathered &ge; needed, the row turns <strong style="color:#388e3c">green</strong> and crosses out</li>
+                <li>Track gathering in the <strong>Gathering ledger by location</strong> — enter how many of each ingredient you have</li>
+                <li>When gathered &ge; needed, ingredient rows turn <strong style="color:#388e3c">green</strong> across all views</li>
                 <li>Progress is <strong>saved automatically</strong> and persists across browser sessions and shutdowns</li>
-                <li>Use <strong>Reset All Progress</strong> (confirm twice) to start fresh</li>
+                <li>Use <strong>Reset Gathered</strong> to clear progress while keeping your shopping list</li>
+                <li>Use <strong>Reset All Progress</strong> to wipe everything and start fresh</li>
             </ul>
 
-            <h3>Location View</h3>
+            <h3>Gathering ledger by location</h3>
             <ul>
-                <li>Click <strong>&#9783; Location View</strong> to switch from cards to a flat table</li>
+                <li>Click <strong>&#9783; Gathering ledger by location</strong> to switch from item cards to a flat table</li>
                 <li>Select a <strong>location</strong> (e.g. a dungeon or explorer chart) from the dropdown</li>
                 <li>The table shows every ingredient from that location — update counters while you farm</li>
-                <li>Progress syncs back to card view automatically</li>
+                <li>Gathered amounts are shared across all items that need the same ingredient</li>
             </ul>
 
             <h3>Ingredient Lookup</h3>
