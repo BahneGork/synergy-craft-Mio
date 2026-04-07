@@ -809,6 +809,7 @@
                 <p class="credits">
                     Created by the <strong><a href="https://discord.gg/ZAEfYwdjc8" target="_blank" class="discord-link">Synergy</a></strong> Guild &bull; Neverwinter<br>
                     <span>Data compiled by <strong>Ivydora</strong> & <strong>Asura</strong></span>
+                    <span id="dataSourceBadge" title="Where crafting data is loaded from" style="display:block; font-size:0.7rem; opacity:0.5; font-family:'Lora',serif; margin-top:2px;"></span>
                 </p>
             </div>
 
@@ -1174,9 +1175,9 @@
       { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "1x Fallen God's Ore", "location": "Master Demonweb Pits" },
       { "resource": "2x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "24x Fluorescent Flora", "location": "Master Demonweb Pits" },
+      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "12x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
-      { "resource": "2x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "12x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "16x Goristro Hide", "location": "Advanced Demonweb Pits" },
       { "resource": "4x Shroomsap Spores", "location": "Abyssal Hunt Mod: Itty Bitty" }
     ]
@@ -1198,6 +1199,106 @@
         return '';
     }
 
+    // --- SHEET INTEGRATION ---
+    const SHEET_ID   = '1fMSxauujv5uU4bUNkfyviZjOjYyoCB8HNFcN54hDdO0';
+    const SHEET_TABS = ['Bard','Barbarian','Cleric','Fighter','Paladin','Ranger','Rogue','Warlock','Wizard','Rings'];
+
+    /** Normalises known location string variants from the Google Sheet. */
+    function normalizeLocation(loc) {
+        return loc
+            .replace('Menzoberranzan Explorer Chart', 'Explorer Chart: Menzoberranzan')
+            .replace('Stronghold/Atelier Summon Vendor', 'Stronghold')
+            .replace('Demonweb Pits Campagin Store', 'Demonweb Pits Campaign Store');
+    }
+
+    /** Parses a single line of Google Sheets CSV (handles quoted fields with embedded commas/quotes). */
+    function parseCSVLine(line) {
+        const result = [];
+        let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+                else inQ = !inQ;
+            } else if (ch === ',' && !inQ) {
+                result.push(cur); cur = '';
+            } else {
+                cur += ch;
+            }
+        }
+        result.push(cur);
+        return result;
+    }
+
+    /**
+     * Parses one tab's CSV text into [{item, classes, ingredients}].
+     * Columns: 0=Class, 1=Craft, 2=Materials (ignored), 3=Resources, 4=Locations
+     */
+    function parseSheetTab(csvText) {
+        const items = [];
+        let current = null;
+        for (const line of csvText.trim().split('\n')) {
+            const r = parseCSVLine(line);
+            if (r[0] === 'Class') continue; // header row
+            const itemName = r[1]?.trim();
+            const resource = r[3]?.trim();
+            const location = normalizeLocation((r[4] || '').trim());
+            if (itemName) {
+                const cls = r[0]?.trim();
+                current = { item: itemName, classes: cls ? [cls] : [], ingredients: [] };
+                items.push(current);
+            }
+            if (current && resource) {
+                current.ingredients.push({ resource, location });
+            }
+        }
+        return items;
+    }
+
+    /** Displays the data-source badge in the header. */
+    function setDataSourceBadge(live) {
+        const el = document.getElementById('dataSourceBadge');
+        if (el) el.textContent = live ? '● live data' : '● offline data';
+    }
+
+    /**
+     * Fetches all sheet tabs in parallel, parses them, and replaces parsedCraftingData.
+     * Falls back silently to the hardcoded data if the fetch fails (e.g. file:// CORS block).
+     */
+    async function loadFromSheet() {
+        const url = tab =>
+            `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+        try {
+            const responses = await Promise.all(SHEET_TABS.map(tab => fetch(url(tab))));
+            const texts     = await Promise.all(responses.map(r => r.text()));
+
+            const merged = new Map(); // itemName → { classes: Set, ingredients: [] }
+            SHEET_TABS.forEach((tab, idx) => {
+                parseSheetTab(texts[idx]).forEach(item => {
+                    if (merged.has(item.item)) {
+                        item.classes.forEach(c => merged.get(item.item).classes.add(c));
+                    } else {
+                        merged.set(item.item, { classes: new Set(item.classes), ingredients: item.ingredients });
+                    }
+                });
+            });
+
+            const liveData = [...merged.entries()].map(([item, d]) => ({
+                item,
+                classes: [...d.classes].sort(),
+                ingredients: d.ingredients
+            }));
+
+            parsedCraftingData = buildParsedData(liveData);
+            setDataSourceBadge(true);
+            filterData();
+            updatePanel();
+        } catch (e) {
+            console.info('Sheet unavailable, using built-in data:', e.message);
+            setDataSourceBadge(false);
+        }
+    }
+
     // --- PARSE INFRASTRUCTURE ---
     function parseIngredient(resource) {
         const match = resource.match(/^(\d+)x\s+(.+)$/);
@@ -1206,13 +1307,17 @@
             : { qty: 0, name: resource };
     }
 
-    const parsedCraftingData = craftingData.map(entry => ({
-        ...entry,
-        ingredients: entry.ingredients.map(ing => ({
-            location: ing.location,
-            ...parseIngredient(ing.resource)
-        }))
-    }));
+    function buildParsedData(data) {
+        return data.map(entry => ({
+            ...entry,
+            ingredients: entry.ingredients.map(ing => ({
+                location: ing.location,
+                ...parseIngredient(ing.resource)
+            }))
+        }));
+    }
+
+    let parsedCraftingData = buildParsedData(craftingData);
 
     // Maps ingredient name → [{entry, ing, i}] for the currently rendered location view.
     // Populated by renderLocationTable(); used by setLocGathered() and setIngredientCount().
@@ -1871,6 +1976,7 @@
     loadState();
     filterData();
     updatePanel();
+    loadFromSheet(); // async — re-renders if sheet loads; falls back silently if not
 </script>
 
 <!-- Help Modal -->
