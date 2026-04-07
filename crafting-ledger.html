@@ -146,6 +146,101 @@
         font-size: 0.95rem;
     }
 
+    /* Help button */
+    .help-btn {
+        position: absolute;
+        top: 20px;
+        right: 0;
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        font-family: 'Lora', serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .help-btn:hover { background: var(--gold); color: #fff; }
+
+    /* Help modal */
+    .help-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        z-index: 3000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .help-modal.open { display: flex; }
+
+    .help-modal-box {
+        background-color: var(--parchment);
+        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        border: 3px solid var(--gold);
+        max-width: 620px;
+        width: 100%;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .help-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 2px solid var(--gold);
+        flex-shrink: 0;
+    }
+
+    .help-modal-header h2 {
+        font-family: 'MedievalSharp', cursive;
+        color: var(--crimson);
+        font-size: 1.4rem;
+        margin: 0;
+    }
+
+    .help-close-btn {
+        background: transparent;
+        border: none;
+        color: var(--gold);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 4px 8px;
+    }
+    .help-close-btn:hover { color: var(--crimson); }
+
+    .help-modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .help-modal-body h3 {
+        font-family: 'MedievalSharp', cursive;
+        color: var(--crimson);
+        font-size: 1rem;
+        margin: 18px 0 6px;
+        border-bottom: 1px solid rgba(176,141,68,0.3);
+        padding-bottom: 4px;
+    }
+    .help-modal-body h3:first-child { margin-top: 0; }
+
+    .help-modal-body ul {
+        margin: 0 0 8px 0;
+        padding-left: 18px;
+    }
+    .help-modal-body li { margin-bottom: 4px; }
+    .help-modal-body strong { color: var(--crimson); }
+
     @media (max-width: 800px) {
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
@@ -705,7 +800,8 @@
     <!-- Right: main content -->
     <div class="main-content">
         <div class="sticky-header">
-            <div class="header-section">
+            <div class="header-section" style="position:relative;">
+                <button class="help-btn" onclick="toggleHelp()" aria-label="Help">?</button>
                 <h1>Masterwork Crafting Ledger</h1>
                 <p class="credits">
                     Created by the <strong><a href="https://discord.gg/ZAEfYwdjc8" target="_blank" class="discord-link">Synergy</a></strong> Guild &bull; Neverwinter<br>
@@ -1068,6 +1164,7 @@
 ];
 
     // --- MATERIAL COLOUR CODING ---
+    /** Returns a CSS colour class for an ingredient name. Orange = rare drops, purple = farmable, blue = Stronghold. */
     function getColorClass(name) {
         const n = name.toLowerCase();
         if (n.includes('druegarsteel') || n.includes('fallen god') || n.includes('abyssal crystal') ||
@@ -1135,6 +1232,7 @@
     }
 
     // --- RENDER ---
+    /** Rebuilds the entire card grid from a pre-filtered/sorted data array. Reads appState for progress and selection state. */
     function renderTable(data) {
         const grid = document.getElementById('itemsGrid');
         grid.innerHTML = '';
@@ -1205,6 +1303,7 @@
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    /** Reads search + class controls, filters parsedCraftingData, sorts selected items first, renders cards. In location view delegates to renderLocationTable(). */
     function filterData() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal = document.getElementById('classFilter').value;
@@ -1228,6 +1327,7 @@
         renderTable(filtered);
     }
 
+    /** Populates the right lookup panel with all crafting items that require the given ingredient name. */
     function showIngredientUses(name) {
         document.getElementById('lookupMaterial').textContent = name;
 
@@ -1251,6 +1351,7 @@
     }
 
     // --- PROGRESS TRACKER ---
+    /** Updates gathered count for one ingredient. Clamps value, saves to localStorage, targeted DOM update — no full re-render. */
     function setIngredientCount(itemName, index, max, value) {
         const clamped = Math.max(0, Math.min(max, isNaN(value) ? 0 : value));
 
@@ -1281,6 +1382,7 @@
     }
 
     // --- SHOPPING LIST SELECTION ---
+    /** Adds/removes an item from the shopping list. Saves to localStorage and re-renders to re-sort. */
     function toggleSelected(itemName) {
         if (appState.selectedItems.has(itemName)) {
             appState.selectedItems.delete(itemName);
@@ -1296,6 +1398,7 @@
     }
 
     // --- SHOPPING PANEL ---
+    /** Aggregates ingredients across all selected items. Returns { name: { qty, collected, locations } }. */
     function buildShoppingList() {
         const aggregated = {};
 
@@ -1317,6 +1420,7 @@
         return aggregated;
     }
 
+    /** Renders the shopping list sidebar from buildShoppingList() output. Updates item count subtitle. */
     function updatePanel() {
         const content = document.getElementById('shoppingContent');
         const n = appState.selectedItems.size;
@@ -1385,6 +1489,7 @@
 
 
     // --- LOCATION VIEW ---
+    /** Switches between Card View and Location View. Shows/hides the card grid and location table accordingly. */
     function toggleView() {
         appState.view = appState.view === 'cards' ? 'location' : 'cards';
         const inLocation = appState.view === 'location';
@@ -1400,6 +1505,7 @@
         if (inLocation) renderLocationTable();
     }
 
+    /** Builds the flat ingredient table for Location View. Filters by search, class, and selected location; sorts rows alphabetically by ingredient name. */
     function renderLocationTable() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal  = document.getElementById('classFilter').value;
@@ -1458,7 +1564,23 @@
         });
     }
 
+    // --- HELP MODAL ---
+    /** Toggles the in-app help overlay open/closed. */
+    function toggleHelp() {
+        const modal = document.getElementById('helpModal');
+        const isOpen = modal.classList.toggle('open');
+        modal.setAttribute('aria-hidden', !isOpen);
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('helpModal');
+            if (modal.classList.contains('open')) toggleHelp();
+        }
+    });
+
     // --- EXPORT ---
+    /** Creates a Blob from content and triggers a browser file download. Works on both file:// and hosted origins. */
     function downloadFile(filename, content, mimeType) {
         const blob = new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
@@ -1475,6 +1597,7 @@
         setTimeout(() => btn.classList.remove('empty-warn'), 600);
     }
 
+    /** Aggregates the shopping list and returns sorted rows plus metadata (date, item count) for use by all export formatters. */
     function exportRows() {
         const agg = buildShoppingList();
         const date = new Date().toISOString().slice(0, 10);
@@ -1488,6 +1611,7 @@
         return { rows, date, items };
     }
 
+    /** Exports the shopping list as a fixed-width plain-text file suitable for pasting into Discord or a text editor. */
     function exportTxt() {
         if (appState.selectedItems.size === 0) { warnEmptyList('exportTxtBtn'); return; }
         const { rows, date, items } = exportRows();
@@ -1501,6 +1625,7 @@
         downloadFile('crafting-list.txt', header + body, 'text/plain');
     }
 
+    /** Exports the shopping list as a Markdown table file, compatible with GitHub, Notion, Obsidian, and similar tools. */
     function exportMd() {
         if (appState.selectedItems.size === 0) { warnEmptyList('exportMdBtn'); return; }
         const { rows, date, items } = exportRows();
@@ -1515,6 +1640,7 @@
         downloadFile('crafting-list.md', lines.join('\n'), 'text/markdown');
     }
 
+    /** Exports the shopping list as a CSV file. Values are properly quoted so the file opens cleanly in Excel or Google Sheets. */
     function exportCsv() {
         if (appState.selectedItems.size === 0) { warnEmptyList('exportCsvBtn'); return; }
         const { rows } = exportRows();
@@ -1542,5 +1668,55 @@
     filterData();
     updatePanel();
 </script>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" aria-hidden="true">
+    <div class="help-modal-box">
+        <div class="help-modal-header">
+            <h2>How to Use</h2>
+            <button class="help-close-btn" onclick="toggleHelp()" aria-label="Close help">&#x2715;</button>
+        </div>
+        <div class="help-modal-body">
+            <h3>Browsing Items</h3>
+            <ul>
+                <li>Use the <strong>search bar</strong> to filter by item name or class name</li>
+                <li>Use the <strong>Class filter</strong> to show only gear for a specific class</li>
+                <li>Ingredient names are <strong style="color:#e67e22">colour-coded</strong>: orange = rare drops, <strong style="color:#8e44ad">purple</strong> = farmable materials, <strong style="color:#0070dd">blue</strong> = Stronghold</li>
+                <li>Click any <strong>ingredient name</strong> to see which items need it (shown in the right panel)</li>
+            </ul>
+
+            <h3>Shopping List</h3>
+            <ul>
+                <li>Click <strong>+ Add to List</strong> on a card to add it to your shopping list</li>
+                <li>The <strong>left panel</strong> shows combined ingredient totals across all selected items</li>
+                <li>Selected items float to the <strong>top of the grid</strong> for easy access</li>
+                <li>Export your list with the <strong>TXT / MD / CSV</strong> buttons at the bottom of the panel</li>
+            </ul>
+
+            <h3>Progress Tracking</h3>
+            <ul>
+                <li>Each ingredient has a <strong>gathered counter</strong> — type in how many you have</li>
+                <li>When gathered &ge; needed, the row turns <strong style="color:#388e3c">green</strong> and crosses out</li>
+                <li>Progress is <strong>saved automatically</strong> and persists across browser sessions and shutdowns</li>
+                <li>Use <strong>Reset All Progress</strong> (confirm twice) to start fresh</li>
+            </ul>
+
+            <h3>Location View</h3>
+            <ul>
+                <li>Click <strong>&#9783; Location View</strong> to switch from cards to a flat table</li>
+                <li>Select a <strong>location</strong> (e.g. a dungeon or explorer chart) from the dropdown</li>
+                <li>The table shows every ingredient from that location — update counters while you farm</li>
+                <li>Progress syncs back to card view automatically</li>
+            </ul>
+
+            <h3>Ingredient Lookup</h3>
+            <ul>
+                <li>Click any <strong>ingredient name</strong> on a card to populate the <strong>Used In</strong> panel on the right</li>
+                <li>Shows all crafting items that require that material and the quantity needed for each</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
