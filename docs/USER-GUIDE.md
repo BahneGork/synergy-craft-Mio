@@ -86,12 +86,26 @@ Every ingredient row has a **counter** on the right side showing `[gathered] / n
 - The card header shows a summary: **"X / N ingredients complete"**
 
 ### Your progress is saved automatically
-Every time you update a counter, it saves instantly in your browser. Your progress will still be there after:
-- Refreshing the page
-- Closing the browser
-- Shutting down your computer
 
-It will **only** be lost if you clear your browser's cookies and site data, or open the file from a different location.
+Every time you update a counter, it saves instantly in your browser using `localStorage`. No account or internet connection is needed — everything stays on your machine.
+
+**Your data survives:**
+- Refreshing the page
+- Closing and reopening the browser
+- Restarting your computer
+
+### When saving breaks
+
+| Situation | What happens |
+|---|---|
+| You clear browser cookies or site data | All progress and selections are permanently wiped |
+| You move or rename the HTML file | The browser treats it as a different site — a fresh empty save starts; the old data is orphaned in the browser but not deleted |
+| You open the file from a different folder | Same as above — new save slot, old data not visible |
+| You open the file on a different computer | Data does not transfer between machines |
+| You use a private / incognito window | Data is lost the moment the window closes |
+| Safari with strict privacy settings | Falls back to in-memory only — data is lost on refresh |
+
+**Bottom line:** keep the file in the same place on your computer and use a regular (non-incognito) browser window. If you need to move to another machine or hand your list to someone else, export to CSV first.
 
 ### Resetting progress
 The **Reset All Progress** button at the bottom of the shopping list panel clears all your gathered counts and your shopping list selection. It asks for confirmation — click it once to see the prompt, then once more to confirm.

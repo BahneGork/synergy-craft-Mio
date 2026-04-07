@@ -30,6 +30,39 @@ The entire application is a **single HTML file** (`crafting-ledger.html`). There
 
 ---
 
+## Persistence
+
+### How it works
+
+Two `localStorage` keys are written on every state change:
+
+| Key | Format | Written by |
+|---|---|---|
+| `synergy-crafting-progress` | `{ "Item Name": [gathered0, gathered1, ...] }` | `saveProgress()` via `setIngredientCount()` |
+| `synergy-crafting-shopping` | `["Item Name", "Item Name", ...]` | `saveSelected()` via `toggleSelected()` |
+
+Both are read once at startup by `loadState()` and merged into `appState`. All rendering then reads from `appState`, not directly from `localStorage`.
+
+The `progress` array is indexed by ingredient position within that item's `ingredients` array. This means **ingredient order within `craftingData` must never change** for an existing item — reordering ingredients shifts all saved indices and corrupts progress for that item.
+
+### In-memory fallback
+
+`localStorage` access is wrapped in a try/catch. If it throws (Safari on `file://` with strict ITP, or the browser quota is exceeded), the code falls back to a plain JS object (`memStore`). The fallback is transparent to the rest of the code but data is lost on page close.
+
+### Known failure modes
+
+| Cause | Effect | Notes |
+|---|---|---|
+| User clears cookies / site data | Both keys deleted — all progress lost | No recovery possible |
+| File moved or renamed | `localStorage` is scoped to the full `file://` path — new path = new (empty) storage | Old data remains orphaned under the old key; not deleted, just unreachable |
+| File opened from a different machine | `localStorage` is per-device, not synced | Export to CSV before switching machines |
+| Private / incognito window | `localStorage` is cleared when the window closes | Data survives within the session but not beyond it |
+| Safari strict ITP on `file://` | `localStorage.setItem` throws — falls back to `memStore` | Effective result: session-only persistence |
+| `localStorage` quota exceeded (~5 MB) | `setItem` throws — same fallback path | Extremely unlikely given the data size |
+| Item name changed in `craftingData` | Old key in `progress` is now orphaned; new name starts fresh | Item names are the primary key — treat them as immutable |
+
+---
+
 ## Data Format
 
 All crafting data lives in the `craftingData` array at the top of the `<script>` block. Each entry follows this shape:

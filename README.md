@@ -30,6 +30,33 @@ See `docs/USER-GUIDE.md` for full usage instructions.
 
 ---
 
+## How saving works
+
+Progress and shopping list selections are stored in your browser using `localStorage` — the same mechanism sites use to remember your preferences without an account. No data is sent anywhere; everything stays on your machine.
+
+**What is saved:**
+- Every ingredient counter (how many you've gathered)
+- Which items are in your shopping list
+
+**What survives:**
+- Refreshing the page
+- Closing and reopening the browser
+- Restarting your computer
+
+**What breaks it:**
+
+| Cause | What happens |
+|---|---|
+| Clearing browser cookies / site data | All progress and selections are wiped |
+| Moving or renaming the HTML file | Browser treats it as a different site — fresh save, old data orphaned |
+| Opening the file from a different folder or device | New save slot; old data is not visible |
+| Using a private/incognito window | Data is lost when the window closes |
+| Safari on some systems with strict privacy settings | Falls back to in-memory storage — data is lost on refresh |
+
+**In short:** keep the file in the same place, use a normal (non-incognito) window, and don't clear site data for the file. If you need to share progress or move to another machine, export to CSV first.
+
+---
+
 ## Development
 
 The entire application is a single HTML file — no build step, no package manager.
