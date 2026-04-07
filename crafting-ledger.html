@@ -843,6 +843,10 @@
                 <div style="font-size:0.85rem; font-weight:700; color:var(--ink); margin-bottom:8px;">Select mods to include:</div>
                 <div id="abyssalModChecks" style="display:flex; flex-wrap:wrap; gap:14px;"></div>
             </div>
+            <div id="locItemFilterWrap" style="display:none; margin-top:10px; padding:10px 14px; border:1px solid rgba(176,141,68,0.4); background:rgba(255,255,255,0.3); border-radius:4px;">
+                <div style="font-size:0.85rem; font-weight:700; color:var(--ink); margin-bottom:8px;">Filter by crafting item:</div>
+                <div id="locItemChecks" style="display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto;"></div>
+            </div>
         </div>
 
         <div id="itemsGrid" class="items-grid"></div>
@@ -1207,6 +1211,7 @@
         progress: {},
         locGathered: {},   // { "Ingredient Name": N } — gathered counter for Location View
         abyssalMods: new Set(),  // which Abyssal Hunt mods are checked
+        locExcluded: new Set()   // item names excluded from location view totals
         view: 'cards'
     };
 
@@ -1247,10 +1252,12 @@
         storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
     }
 
-    /** Shows or hides the Abyssal Hunt mod checkboxes depending on which location is selected, then re-renders the table. */
+    /** Shows or hides the Abyssal Hunt mod checkboxes depending on which location is selected, resets item exclusions, then re-renders the table. */
     function onLocationChange() {
         const val = document.getElementById('locationFilter').value;
         document.getElementById('abyssalModWrap').style.display = val === 'Abyssal Hunt' ? 'block' : 'none';
+        document.getElementById('locItemFilterWrap').style.display = val ? 'block' : 'none';
+        appState.locExcluded.clear();
         renderLocationTable();
     }
 
@@ -1260,6 +1267,16 @@
             appState.abyssalMods.delete(modName);
         } else {
             appState.abyssalMods.add(modName);
+        }
+        renderLocationTable();
+    }
+
+    /** Toggles a crafting item in/out of the location view exclusion list and re-renders the table. */
+    function toggleLocItem(itemName) {
+        if (appState.locExcluded.has(itemName)) {
+            appState.locExcluded.delete(itemName);
+        } else {
+            appState.locExcluded.add(itemName);
         }
         renderLocationTable();
     }
@@ -1573,9 +1590,30 @@
             });
         });
 
+        // Rebuild item filter checkboxes (all items present in current pairs)
+        const itemsInView = [...new Set(pairs.map(p => p.entry.item))].sort();
+        const checksEl = document.getElementById('locItemChecks');
+        checksEl.innerHTML = '';
+        itemsInView.forEach(itemName => {
+            const checked = !appState.locExcluded.has(itemName);
+            const label = document.createElement('label');
+            label.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; font-family:"Lora",serif;';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = checked;
+            cb.dataset.item = itemName;
+            cb.addEventListener('change', () => toggleLocItem(cb.dataset.item));
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(itemName));
+            checksEl.appendChild(label);
+        });
+
+        // Filter out excluded items before aggregating
+        const activePairs = pairs.filter(p => !appState.locExcluded.has(p.entry.item));
+
         // Group by ingredient name, accumulate total needed
         const grouped = new Map();
-        pairs.forEach(({ entry, ing, i }) => {
+        activePairs.forEach(({ entry, ing, i }) => {
             if (!grouped.has(ing.name)) {
                 grouped.set(ing.name, { totalQty: 0, colorClass: getColorClass(ing.name), sources: [] });
             }
