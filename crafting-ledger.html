@@ -830,6 +830,9 @@
                         <option value="Warlock">Warlock</option>
                         <option value="Wizard">Wizard</option>
                     </select>
+                    <label id="exclusiveLabel" style="display:none; align-items:center; gap:5px; font-size:0.8rem; white-space:nowrap; cursor:pointer;">
+                        <input type="checkbox" id="exclusiveFilter" onchange="filterData()"> this class only
+                    </label>
                 </div>
                 <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Location View</button>
             </div>
@@ -1504,6 +1507,12 @@
     function filterData() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal = document.getElementById('classFilter').value;
+        const exclusiveEl = document.getElementById('exclusiveFilter');
+        const exclusive = exclusiveEl && exclusiveEl.checked;
+
+        // Show "this class only" checkbox only when a specific class is selected
+        const label = document.getElementById('exclusiveLabel');
+        if (label) label.style.display = classVal !== 'All' ? 'flex' : 'none';
 
         if (appState.view === 'location') {
             renderLocationTable();
@@ -1513,7 +1522,11 @@
         const filtered = parsedCraftingData.filter(d => {
             const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
                                  d.classes.some(cls => cls.toLowerCase().includes(searchVal));
-            const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
+            const matchesClass = classVal === 'All'
+                ? true
+                : exclusive
+                    ? d.classes.length === 1 && d.classes[0] === classVal
+                    : d.classes.includes(classVal);
             return matchesSearch && matchesClass;
         });
         filtered.sort((a, b) => {
