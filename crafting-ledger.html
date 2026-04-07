@@ -90,12 +90,60 @@
         align-items: stretch;
     }
 
-    .location-wrapper {
+    .view-toggle-btn {
         grid-column: 1 / -1;
+        padding: 10px;
+        border: 2px solid var(--gold);
+        background: transparent;
+        color: var(--gold);
+        font-family: 'Lora', serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
     }
 
-    .location-wrapper select {
+    .view-toggle-btn.active,
+    .view-toggle-btn:hover {
+        background: var(--gold);
+        color: #fff;
+    }
+
+    .loc-table {
         width: 100%;
+        border-collapse: collapse;
+        font-family: 'Lora', serif;
+        font-size: 0.9rem;
+    }
+
+    .loc-table th {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 2px solid var(--gold);
+        font-family: 'MedievalSharp', cursive;
+        color: var(--crimson);
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    .loc-table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(176, 141, 68, 0.2);
+        vertical-align: middle;
+    }
+
+    .loc-table tbody tr:hover td { background: rgba(176, 141, 68, 0.06); }
+
+    .loc-needed { font-weight: 700; color: var(--crimson); white-space: nowrap; }
+    .loc-ingredient { font-weight: 700; }
+    .loc-item-name { font-size: 0.82rem; color: #888; font-style: italic; }
+
+    .loc-empty {
+        text-align: center;
+        font-style: italic;
+        color: #888;
+        padding: 40px 0;
+        font-size: 0.95rem;
     }
 
     @media (max-width: 800px) {
@@ -683,14 +731,34 @@
                         <option value="Wizard">Wizard</option>
                     </select>
                 </div>
-                <div class="location-wrapper">
-                    <select id="locationFilter" onchange="filterData()">
-                        <option value="">All Locations</option>
-                    </select>
-                </div>
+                <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Location View</button>
             </div>
         </div>
+
+        <!-- Location view controls (hidden by default) -->
+        <div id="locationFilterWrap" style="display:none; margin-bottom:15px;">
+            <select id="locationFilter" onchange="renderLocationTable()" style="width:100%; padding:12px; border:2px solid var(--gold); background:rgba(255,255,255,0.5); font-size:1rem; font-family:'Lora',serif;">
+                <option value="">— Pick a location —</option>
+            </select>
+        </div>
+
         <div id="itemsGrid" class="items-grid"></div>
+
+        <!-- Location view table (hidden by default) -->
+        <div id="locationTableWrap" style="display:none;">
+            <table class="loc-table">
+                <thead>
+                    <tr>
+                        <th>Needed</th>
+                        <th>Gathered</th>
+                        <th>Ingredient</th>
+                        <th>Crafting Item</th>
+                    </tr>
+                </thead>
+                <tbody id="locationTableBody"></tbody>
+            </table>
+            <p id="locationTableEmpty" class="loc-empty"></p>
+        </div>
     </div>
 
     <!-- Right: ingredient lookup panel -->
@@ -1032,7 +1100,8 @@
     // --- STATE LAYER ---
     const appState = {
         selectedItems: new Set(),
-        progress: {}
+        progress: {},
+        view: 'cards'
     };
 
     // localStorage helpers with fallback for browsers that block it on file://
@@ -1081,15 +1150,11 @@
             ).join('');
 
             const prog = appState.progress[entry.item] || [];
-            const doneCount = entry.ingredients.filter(ing => {
-                const idx = ing.originalIndex ?? entry.ingredients.indexOf(ing);
-                return (prog[idx] || 0) >= ing.qty;
-            }).length;
+            const doneCount = entry.ingredients.filter((ing, i) => (prog[i] || 0) >= ing.qty).length;
             const total = entry.ingredients.length;
 
             const ingredientHtml = entry.ingredients.map((ing, i) => {
-                const idx = ing.originalIndex ?? i;
-                const collected = prog[idx] || 0;
+                const collected = prog[i] || 0;
                 const isDone = collected >= ing.qty;
                 return `
                     <div class="ingredient-row${isDone ? ' done' : ''}">
@@ -1101,7 +1166,7 @@
                                        min="0" max="${ing.qty}"
                                        value="${collected}"
                                        data-item="${escHtml(entry.item)}"
-                                       data-index="${idx}"
+                                       data-index="${i}"
                                        data-max="${ing.qty}"
                                        oninput="setIngredientCount(this.dataset.item, +this.dataset.index, +this.dataset.max, +this.value)">
                                 <span class="counter-sep">/</span>
@@ -1143,22 +1208,18 @@
     function filterData() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal = document.getElementById('classFilter').value;
-        const locationVal = document.getElementById('locationFilter').value;
 
-        const filtered = parsedCraftingData
-            .filter(d => {
-                const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
-                                     d.classes.some(cls => cls.toLowerCase().includes(searchVal));
-                const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
-                return matchesSearch && matchesClass;
-            })
-            .map(entry => {
-                const ingredients = entry.ingredients.map((ing, i) => ({ ...ing, originalIndex: i }));
-                if (!locationVal) return { ...entry, ingredients };
-                const visible = ingredients.filter(ing => ing.location === locationVal);
-                return visible.length ? { ...entry, ingredients: visible } : null;
-            })
-            .filter(Boolean);
+        if (appState.view === 'location') {
+            renderLocationTable();
+            return;
+        }
+
+        const filtered = parsedCraftingData.filter(d => {
+            const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
+                                 d.classes.some(cls => cls.toLowerCase().includes(searchVal));
+            const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
+            return matchesSearch && matchesClass;
+        });
         filtered.sort((a, b) => {
             const aSelected = appState.selectedItems.has(a.item) ? 0 : 1;
             const bSelected = appState.selectedItems.has(b.item) ? 0 : 1;
@@ -1323,6 +1384,80 @@
     }
 
 
+    // --- LOCATION VIEW ---
+    function toggleView() {
+        appState.view = appState.view === 'cards' ? 'location' : 'cards';
+        const inLocation = appState.view === 'location';
+
+        document.getElementById('itemsGrid').style.display        = inLocation ? 'none' : '';
+        document.getElementById('locationTableWrap').style.display = inLocation ? 'block' : 'none';
+        document.getElementById('locationFilterWrap').style.display = inLocation ? 'block' : 'none';
+
+        const btn = document.getElementById('viewToggleBtn');
+        btn.textContent = inLocation ? '⊠ Card View' : '⊞ Location View';
+        btn.classList.toggle('active', inLocation);
+
+        if (inLocation) renderLocationTable();
+    }
+
+    function renderLocationTable() {
+        const searchVal = document.getElementById('searchInput').value.toLowerCase();
+        const classVal  = document.getElementById('classFilter').value;
+        const locVal    = document.getElementById('locationFilter').value;
+        const tbody     = document.getElementById('locationTableBody');
+        const empty     = document.getElementById('locationTableEmpty');
+        tbody.innerHTML = '';
+
+        if (!locVal) {
+            empty.textContent = 'Select a location above to see its ingredients.';
+            empty.style.display = 'block';
+            return;
+        }
+
+        const rows = [];
+        parsedCraftingData.forEach(entry => {
+            const matchesSearch = entry.item.toLowerCase().includes(searchVal) ||
+                                  entry.classes.some(c => c.toLowerCase().includes(searchVal));
+            const matchesClass  = classVal === 'All' || entry.classes.includes(classVal);
+            if (!matchesSearch || !matchesClass) return;
+
+            entry.ingredients.forEach((ing, i) => {
+                if (ing.location !== locVal) return;
+                rows.push({ entry, ing, i });
+            });
+        });
+
+        rows.sort((a, b) => a.ing.name.localeCompare(b.ing.name));
+
+        if (rows.length === 0) {
+            empty.textContent = 'No ingredients found for this selection.';
+            empty.style.display = 'block';
+            return;
+        }
+
+        empty.style.display = 'none';
+        rows.forEach(({ entry, ing, i }) => {
+            const prog = appState.progress[entry.item] || [];
+            const gathered = prog[i] || 0;
+            const isDone = gathered >= ing.qty;
+            const tr = document.createElement('tr');
+            if (isDone) tr.style.opacity = '0.5';
+            tr.innerHTML = `
+                <td class="loc-needed">${ing.qty}x</td>
+                <td>
+                    <input type="number" class="counter-input"
+                           min="0" max="${ing.qty}" value="${gathered}"
+                           data-item="${escHtml(entry.item)}"
+                           data-index="${i}"
+                           data-max="${ing.qty}"
+                           oninput="setIngredientCount(this.dataset.item, +this.dataset.index, +this.dataset.max, +this.value); this.closest('tr').style.opacity = (+this.value >= +this.dataset.max) ? '0.5' : '1';">
+                </td>
+                <td class="loc-ingredient ${getColorClass(ing.name)}">${escHtml(ing.name)}</td>
+                <td class="loc-item-name">${escHtml(entry.item)}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
     // --- EXPORT ---
     function downloadFile(filename, content, mimeType) {
         const blob = new Blob([content], { type: mimeType });
@@ -1396,12 +1531,11 @@
     const allLocations = [...new Set(
         parsedCraftingData.flatMap(e => e.ingredients.map(i => i.location))
     )].sort();
-    const locSelect = document.getElementById('locationFilter');
     allLocations.forEach(loc => {
         const opt = document.createElement('option');
         opt.value = loc;
         opt.textContent = loc;
-        locSelect.appendChild(opt);
+        document.getElementById('locationFilter').appendChild(opt);
     });
 
     loadState();
