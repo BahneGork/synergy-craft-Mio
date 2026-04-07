@@ -843,10 +843,6 @@
                 <div style="font-size:0.85rem; font-weight:700; color:var(--ink); margin-bottom:8px;">Select mods to include:</div>
                 <div id="abyssalModChecks" style="display:flex; flex-wrap:wrap; gap:14px;"></div>
             </div>
-            <div id="locItemFilterWrap" style="display:none; margin-top:10px; padding:10px 14px; border:1px solid rgba(176,141,68,0.4); background:rgba(255,255,255,0.3); border-radius:4px;">
-                <div style="font-size:0.85rem; font-weight:700; color:var(--ink); margin-bottom:8px;">Filter by crafting item:</div>
-                <div id="locItemChecks" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:6px 16px;"></div>
-            </div>
         </div>
 
         <div id="itemsGrid" class="items-grid"></div>
@@ -868,14 +864,27 @@
         </div>
     </div>
 
-    <!-- Right: ingredient lookup panel -->
+    <!-- Right: ingredient lookup panel (card view) / item filter (location view) -->
     <div class="lookup-panel">
-        <div class="lookup-header">
-            <h2 class="lookup-title">Used In</h2>
-            <div class="lookup-material" id="lookupMaterial">Click any ingredient name</div>
+        <!-- Card view: ingredient lookup -->
+        <div id="lookupSection">
+            <div class="lookup-header">
+                <h2 class="lookup-title">Used In</h2>
+                <div class="lookup-material" id="lookupMaterial">Click any ingredient name</div>
+            </div>
+            <div class="lookup-content" id="lookupContent">
+                <p class="lookup-empty">Click an ingredient name on any card to see which items require it.</p>
+            </div>
         </div>
-        <div class="lookup-content" id="lookupContent">
-            <p class="lookup-empty">Click an ingredient name on any card to see which items require it.</p>
+        <!-- Location view: item filter -->
+        <div id="locItemSection" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+            <div class="lookup-header">
+                <h2 class="lookup-title">Filter Items</h2>
+                <div class="lookup-material">Select which items to include in totals</div>
+            </div>
+            <div class="lookup-content">
+                <div id="locItemChecks" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
         </div>
     </div>
 
@@ -1252,7 +1261,6 @@
     function onLocationChange() {
         const val = document.getElementById('locationFilter').value;
         document.getElementById('abyssalModWrap').style.display = val === 'Abyssal Hunt' ? 'block' : 'none';
-        document.getElementById('locItemFilterWrap').style.display = val ? 'block' : 'none';
         appState.locExcluded.clear();
         renderLocationTable();
     }
@@ -1603,6 +1611,8 @@
         document.getElementById('itemsGrid').style.display        = inLocation ? 'none' : '';
         document.getElementById('locationTableWrap').style.display = inLocation ? 'block' : 'none';
         document.getElementById('locationFilterWrap').style.display = inLocation ? 'block' : 'none';
+        document.getElementById('lookupSection').style.display    = inLocation ? 'none' : '';
+        document.getElementById('locItemSection').style.display   = inLocation ? 'flex' : 'none';
 
         const btn = document.getElementById('viewToggleBtn');
         btn.textContent = inLocation ? '⊠ Card View' : '⊞ Location View';
