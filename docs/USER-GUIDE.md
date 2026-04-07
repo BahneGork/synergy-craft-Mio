@@ -123,23 +123,33 @@ The **Reset All Progress** button at the bottom of the shopping list panel clear
 
 ## Location View
 
-Location View is designed for active farming sessions. Instead of scrolling through full item cards, you get a simple table showing exactly what you need from one specific place.
+Location View is designed for active farming sessions. Instead of scrolling through full item cards, you get a focused table showing exactly what you need from one specific place.
 
 ### Switching to Location View
-Click the **⊞ Location View** button in the controls row. The card grid is replaced by a location dropdown and a flat table.
+Click the **⊞ Location View** button in the controls row. The card grid is replaced by a location dropdown and a grouped ingredient table.
 
 ### Using the table
-1. Select a location from the dropdown (e.g. "Abyssal Hunt Mod: Tricky Reversal")
-2. The table shows every ingredient sourced there, sorted alphabetically
-3. Each row shows: **how many needed**, **how many gathered** (editable), **ingredient name**, and **which crafting item needs it**
+1. Select a location from the dropdown
+2. The table shows one row per **ingredient** at that location, sorted alphabetically
+3. Each row shows: **total quantity needed**, **how many gathered** (editable), **ingredient name**, and a **comma-separated list of crafting items** that need it
 
-You can still use the search bar and class filter to narrow the table down.
+As you type a gathered amount:
+- Item names in the list turn **green** when your gathered total meets their individual requirement
+- The row dims when you've gathered enough for all items
 
-### Updating counts
-The gathered counter in the table works the same as in card view — type in what you've picked up. The numbers sync automatically: if you gather 5 Mushroom Logs in Location View, the card for Shroomwood Amulet will show the updated count when you switch back.
+You can still use the search bar and class filter to narrow the table.
+
+### Abyssal Hunt mods
+Selecting **Abyssal Hunt** from the dropdown shows a set of checkboxes — one per mod (e.g. Tricky Reversal, Itty Bitty). Tick the mods you are running that session; the table combines ingredients from all ticked mods. You can run both, or just one.
+
+### Filtering by crafting item
+When Location View is active the right-hand panel switches to **Filter Items** — a checklist of every crafting item that has ingredients at the selected location. Uncheck an item to remove its quantities from the Needed totals. Useful when you are only crafting a subset of the available items. The filter resets each time you change location.
+
+### Synced counters
+The gathered counter in the table is the same data as the card view counters — they share the same storage. Updating a counter in Location View updates the corresponding card, and vice versa. The shopping list reflects whichever view you updated last.
 
 ### Switching back
-Click **⊠ Card View** to return to the normal card grid.
+Click **⊠ Card View** to return to the normal card grid. The right-hand panel returns to the **Used In** ingredient lookup.
 
 ---
 
@@ -147,8 +157,8 @@ Click **⊠ Card View** to return to the normal card grid.
 
 **Before a farming run:**
 1. Add all items you want to craft to the Shopping List
-2. Open the export panel and download a CSV or TXT to keep on your phone or second screen
-3. Switch to Location View and select your farming destination to see exactly what to look for
+2. Export to CSV or TXT to keep on your phone or second screen
+3. Switch to Location View, select your farming destination, and use the **Filter Items** panel to tick only the items you are crafting this run
 
 **During a run:**
 - Use Location View with the location selected — update counters as you gather materials

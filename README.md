@@ -12,8 +12,9 @@ An interactive web tool for **Neverwinter** players to plan and track high-end M
 - **Real-time search** — filter by item name or class as you type
 - **Shopping list** — add items to a persistent left-side panel that aggregates all required ingredients across your selection
 - **Progress tracking** — enter how many of each ingredient you've gathered; completed rows turn green and cross out automatically
-- **Location View** — switch to a flat table filtered by farming location to see exactly what to pick up during a run
-- **Ingredient lookup** — click any ingredient name to see every item that needs it, listed in the right panel
+- **Location View** — switch to a grouped table filtered by farming location; one row per ingredient, with a single gathered counter and a list of which items need it. Abyssal Hunt mods can be selected individually or combined
+- **Filter Items panel** — in Location View the right sidebar becomes a checklist of crafting items at that location; uncheck any item to remove its quantities from the totals
+- **Ingredient lookup** — in Card View, click any ingredient name to see every item that needs it in the right panel
 - **Colour-coded ingredients** — orange for rare drops, purple for farmable materials, blue for Stronghold resources
 - **Export** — download your shopping list as TXT (Discord-friendly), Markdown, or CSV
 - **Auto-save** — all progress and selections are saved in your browser automatically

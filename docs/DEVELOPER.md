@@ -11,16 +11,20 @@ The entire application is a **single HTML file** (`crafting-ledger.html`). There
 **Layout: three columns**
 ```
 ┌─────────────────┬──────────────────────────┬──────────────┐
-│  Shopping List  │     Main Content         │  Used In     │
-│  (left sidebar) │  sticky header + grid    │  (right      │
-│  300px fixed    │  OR location table       │   sidebar)   │
-│                 │  flex: 1                 │  220px fixed │
+│  Shopping List  │     Main Content         │  Used In /   │
+│  (left sidebar) │  sticky header + grid    │  Filter Items│
+│  300px fixed    │  OR location table       │  (right      │
+│                 │  flex: 1                 │   sidebar)   │
+│                 │                          │  220px fixed │
 └─────────────────┴──────────────────────────┴──────────────┘
 ```
 
 **Two views (main content area):**
-- **Card View** (default) — CSS grid of item cards, each showing ingredients with gathered counters
-- **Location View** — flat `<table>` of ingredients for a selected location, toggled by a button in the controls row
+- **Card View** (default) — CSS grid of item cards, each showing ingredients with gathered counters. Right sidebar shows the **Used In** ingredient lookup.
+- **Location View** — `<table>` grouped by ingredient for a selected location. Right sidebar swaps to the **Filter Items** item checklist.
+
+**Abyssal Hunt grouping:**
+Locations prefixed `Abyssal Hunt Mod:` are collapsed into a single dropdown entry. Selecting it reveals a checkbox panel (one per mod) so the user can include one or both mods. Mod names are extracted dynamically from `craftingData` — adding a third mod requires no code change.
 
 **Persistence:**
 - `localStorage` with two keys:
@@ -143,7 +147,14 @@ Rebuilds the `#itemsGrid` DOM entirely from a supplied data array (a filtered/so
 Reads the search input and class dropdown, filters `parsedCraftingData`, sorts selected items to the top, then calls `renderTable()`. In Location View (`appState.view === 'location'`), delegates to `renderLocationTable()` instead.
 
 **`renderLocationTable()`**
-Builds the flat `#locationTableBody` for Location View. Reads search, class, and location filters. Produces one `<tr>` per item×ingredient pair matching the selected location, sorted alphabetically by ingredient name. Reuses `setIngredientCount()` for gathered counter inputs.
+Builds `#locationTableBody` for Location View. Reads search, class, location filter, and `appState.abyssalMods` / `appState.locExcluded`. Flow:
+1. Resolves which location strings to match — for `"Abyssal Hunt"` expands to all checked mod strings; otherwise exact match
+2. Collects all matching item×ingredient `pairs` (before exclusion)
+3. Populates `locSourceMap` from `pairs`
+4. Rebuilds the **Filter Items** checklist in `#locItemChecks` from the unique items in `pairs`
+5. Filters `pairs` to `activePairs` by removing `locExcluded` items
+6. Groups `activePairs` by ingredient name into a `Map`
+7. Renders one `<tr>` per ingredient, sorted alphabetically. Each row: total qty needed, a single gathered counter (value derived from `locSourceMap` as max gathered across all sources), colour-coded ingredient name, comma-separated item list with individual qtys (items turn green via `.loc-item-met` when the counter meets their qty)
 
 ### State management
 
@@ -153,12 +164,20 @@ Central state object:
 {
   selectedItems: new Set(),  // item names in the shopping list
   progress: {},              // { itemName: [gathered, gathered, ...] }
+  abyssalMods: new Set(),    // which Abyssal Hunt mod names are currently checked
+  locExcluded: new Set(),    // item names excluded from Location View totals
   view: 'cards'              // 'cards' | 'location'
 }
 ```
 
+**`locSourceMap`**
+Module-level `Map` populated by `renderLocationTable()` before the item exclusion filter. Maps ingredient name → `[{ entry, ing, i }]` for every item that needs it at the current location. Used by `setLocGathered()` to know which per-item progress slots to update, and by `setIngredientCount()` to sync the location table DOM.
+
 **`setIngredientCount(itemName, index, max, value)`**
-Updates `appState.progress[itemName][index]`, clamps the value to `[0, max]`, saves to localStorage, and performs a **targeted DOM update** (finds the specific row by `data-item`/`data-index` selectors and toggles `.done` class). Does not trigger a full re-render. Also updates the card's progress counter text and refreshes the shopping list panel.
+Updates `appState.progress[itemName][index]`, clamps the value to `[0, max]`, saves to localStorage, and performs a **targeted DOM update** (finds the specific row by `data-item`/`data-index` selectors and toggles `.done` class). Does not trigger a full re-render. Also updates the card's progress counter text and refreshes the shopping list panel. If Location View is active, also updates the corresponding location table counter (derived as the max gathered across all `locSourceMap` sources for that ingredient).
+
+**`setLocGathered(ingName, value)`**
+Called by the location table counter `oninput`. Looks up all source items for `ingName` in `locSourceMap`, writes `min(value, item.qty)` to each item's `appState.progress` slot, and performs targeted DOM updates on both the card grid and the location table row (opacity, green item highlights). Calls `saveProgress()` and `updatePanel()`. Does not call `setIngredientCount()` — updates progress directly to avoid circular calls.
 
 **`toggleSelected(itemName)`**
 Adds or removes an item from `appState.selectedItems`, saves to localStorage, then calls `filterData()` to trigger a re-render (which re-sorts selected items to the top).
@@ -190,7 +209,16 @@ Creates a `Blob`, generates an object URL, triggers an `<a download>` click, and
 ### View switching
 
 **`toggleView()`**
-Toggles `appState.view` between `'cards'` and `'location'`. Shows/hides `#itemsGrid`, `#locationTableWrap`, and `#locationFilterWrap`. Updates the toggle button label and active state.
+Toggles `appState.view` between `'cards'` and `'location'`. Shows/hides `#itemsGrid`, `#locationTableWrap`, and `#locationFilterWrap`. Swaps the right sidebar between `#lookupSection` (Used In) and `#locItemSection` (Filter Items). Updates the toggle button label and active state. Calls `renderLocationTable()` when entering Location View.
+
+**`onLocationChange()`**
+Called by the location dropdown `onchange`. Shows/hides `#abyssalModWrap` (Abyssal Hunt mod checkboxes), clears `appState.locExcluded`, and calls `renderLocationTable()`.
+
+**`toggleAbyssalMod(modName)`**
+Adds/removes a mod name from `appState.abyssalMods` and calls `renderLocationTable()`.
+
+**`toggleLocItem(itemName)`**
+Adds/removes an item name from `appState.locExcluded` and calls `renderLocationTable()`.
 
 ---
 
@@ -210,6 +238,7 @@ All styles live in the single `<style>` block. Organised by component:
 | Shopping panel | `.panel-header`, `.panel-content`, `.panel-footer`, `.shop-ingredient-row` |
 | Export buttons | `.export-btn-row`, `.export-btn` |
 | Ingredient lookup | `.lookup-panel`, `.lookup-header`, `.lookup-item-row` |
-| Location view | `.view-toggle-btn`, `.loc-table`, `.loc-needed`, `.loc-ingredient` |
+| Location view table | `.view-toggle-btn`, `.loc-table`, `.loc-needed`, `.loc-ingredient`, `.loc-items-cell` |
+| Location item labels | `.loc-item-label`, `.loc-item-met` (green when gathered ≥ item qty), `.loc-item-sep` |
 | Help modal | `.help-modal`, `.help-modal-box`, `.help-modal-header`, `.help-modal-body` |
 | Responsive | `@media (max-width: 800px)` overrides |
