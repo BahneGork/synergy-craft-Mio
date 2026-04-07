@@ -836,9 +836,13 @@
 
         <!-- Location view controls (hidden by default) -->
         <div id="locationFilterWrap" style="display:none; margin-bottom:15px;">
-            <select id="locationFilter" onchange="renderLocationTable()" style="width:100%; padding:12px; border:2px solid var(--gold); background:rgba(255,255,255,0.5); font-size:1rem; font-family:'Lora',serif;">
+            <select id="locationFilter" onchange="onLocationChange()" style="width:100%; padding:12px; border:2px solid var(--gold); background:rgba(255,255,255,0.5); font-size:1rem; font-family:'Lora',serif;">
                 <option value="">— Pick a location —</option>
             </select>
+            <div id="abyssalModWrap" style="display:none; margin-top:10px; padding:10px 14px; border:1px solid rgba(176,141,68,0.4); background:rgba(255,255,255,0.3); border-radius:4px;">
+                <div style="font-size:0.85rem; font-weight:700; color:var(--ink); margin-bottom:8px;">Select mods to include:</div>
+                <div id="abyssalModChecks" style="display:flex; flex-wrap:wrap; gap:14px;"></div>
+            </div>
         </div>
 
         <div id="itemsGrid" class="items-grid"></div>
@@ -1202,6 +1206,7 @@
         selectedItems: new Set(),
         progress: {},
         locGathered: {},   // { "Ingredient Name": N } — gathered counter for Location View
+        abyssalMods: new Set(),  // which Abyssal Hunt mods are checked
         view: 'cards'
     };
 
@@ -1240,6 +1245,23 @@
 
     function saveLocGathered() {
         storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
+    }
+
+    /** Shows or hides the Abyssal Hunt mod checkboxes depending on which location is selected, then re-renders the table. */
+    function onLocationChange() {
+        const val = document.getElementById('locationFilter').value;
+        document.getElementById('abyssalModWrap').style.display = val === 'Abyssal Hunt' ? 'block' : 'none';
+        renderLocationTable();
+    }
+
+    /** Toggles an Abyssal Hunt mod in appState and re-renders the location table. */
+    function toggleAbyssalMod(modName) {
+        if (appState.abyssalMods.has(modName)) {
+            appState.abyssalMods.delete(modName);
+        } else {
+            appState.abyssalMods.add(modName);
+        }
+        renderLocationTable();
     }
 
     // --- RENDER ---
@@ -1531,6 +1553,13 @@
             return;
         }
 
+        // Resolve which location strings to include
+        // "Abyssal Hunt" is a virtual grouping — expand to the checked mod strings
+        const isAbyssal = locVal === 'Abyssal Hunt';
+        const matchesLoc = isAbyssal
+            ? (loc => loc.startsWith('Abyssal Hunt Mod: ') && appState.abyssalMods.has(loc.slice('Abyssal Hunt Mod: '.length)))
+            : (loc => loc === locVal);
+
         // Collect all matching item×ingredient pairs
         const pairs = [];
         parsedCraftingData.forEach(entry => {
@@ -1539,7 +1568,7 @@
             const matchesClass  = classVal === 'All' || entry.classes.includes(classVal);
             if (!matchesSearch || !matchesClass) return;
             entry.ingredients.forEach((ing, i) => {
-                if (ing.location !== locVal) return;
+                if (!matchesLoc(ing.location)) return;
                 pairs.push({ entry, ing, i });
             });
         });
@@ -1689,11 +1718,42 @@
     }
 
     // --- INITIAL LOAD ---
-    // Populate location dropdown from data
+    // Populate location dropdown from data.
+    // Abyssal Hunt mods are grouped under a single "Abyssal Hunt" entry;
+    // individual mods become checkboxes shown below the dropdown.
+    const abyssalPrefix = 'Abyssal Hunt Mod: ';
     const allLocations = [...new Set(
         parsedCraftingData.flatMap(e => e.ingredients.map(i => i.location))
     )].sort();
+
+    // Extract mod names and seed appState.abyssalMods (all checked by default)
+    const abyssalModNames = [...new Set(
+        allLocations.filter(l => l.startsWith(abyssalPrefix)).map(l => l.slice(abyssalPrefix.length))
+    )].sort();
+    abyssalModNames.forEach(m => appState.abyssalMods.add(m));
+
+    // Build mod checkboxes
+    const checksContainer = document.getElementById('abyssalModChecks');
+    abyssalModNames.forEach(modName => {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:0.9rem; cursor:pointer; font-family:"Lora",serif;';
+        label.innerHTML = `<input type="checkbox" checked onchange="toggleAbyssalMod('${modName.replace(/'/g,"\\'")}')"> ${modName}`;
+        checksContainer.appendChild(label);
+    });
+
+    // Populate dropdown: skip individual Abyssal Hunt mod entries, add one grouped entry
+    let abyssalAdded = false;
     allLocations.forEach(loc => {
+        if (loc.startsWith(abyssalPrefix)) {
+            if (!abyssalAdded) {
+                const opt = document.createElement('option');
+                opt.value = 'Abyssal Hunt';
+                opt.textContent = 'Abyssal Hunt';
+                document.getElementById('locationFilter').appendChild(opt);
+                abyssalAdded = true;
+            }
+            return;
+        }
         const opt = document.createElement('option');
         opt.value = loc;
         opt.textContent = loc;
