@@ -1205,13 +1205,16 @@
         }))
     }));
 
+    // Maps ingredient name → [{entry, ing, i}] for the currently rendered location view.
+    // Populated by renderLocationTable(); used by setLocGathered() and setIngredientCount().
+    const locSourceMap = new Map();
+
     // --- STATE LAYER ---
     const appState = {
         selectedItems: new Set(),
         progress: {},
-        locGathered: {},   // { "Ingredient Name": N } — gathered counter for Location View
         abyssalMods: new Set(),  // which Abyssal Hunt mods are checked
-        locExcluded: new Set()   // item names excluded from location view totals
+        locExcluded: new Set(),  // item names excluded from location view totals
         view: 'cards'
     };
 
@@ -1231,12 +1234,9 @@
             if (prog) appState.progress = JSON.parse(prog);
             const shop = storage.getItem('synergy-crafting-shopping');
             if (shop) appState.selectedItems = new Set(JSON.parse(shop));
-            const loc = storage.getItem('synergy-crafting-loc-gathered');
-            if (loc) appState.locGathered = JSON.parse(loc);
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
-            appState.locGathered = {};
         }
     }
 
@@ -1246,10 +1246,6 @@
 
     function saveSelected() {
         storage.setItem('synergy-crafting-shopping', JSON.stringify([...appState.selectedItems]));
-    }
-
-    function saveLocGathered() {
-        storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
     }
 
     /** Shows or hides the Abyssal Hunt mod checkboxes depending on which location is selected, resets item exclusions, then re-renders the table. */
@@ -1269,6 +1265,44 @@
             appState.abyssalMods.add(modName);
         }
         renderLocationTable();
+    }
+
+    /** Sets the location-view gathered counter for one ingredient. Writes to appState.progress for every source item (capped at that item's qty) and syncs the card view DOM. Single source of truth is appState.progress — no separate storage key. */
+    function setLocGathered(ingName, rawValue) {
+        const v = Math.max(0, isNaN(rawValue) ? 0 : rawValue);
+
+        // Update per-item progress and card grid DOM for every source item
+        const sources = locSourceMap.get(ingName) || [];
+        sources.forEach(({ entry, ing, i }) => {
+            const clamped = Math.min(v, ing.qty);
+            if (!appState.progress[entry.item])
+                appState.progress[entry.item] = new Array(entry.ingredients.length).fill(0);
+            appState.progress[entry.item][i] = clamped;
+
+            const cardInput = document.querySelector(`input.counter-input[data-item="${CSS.escape(entry.item)}"][data-index="${i}"]`);
+            if (cardInput && +cardInput.value !== clamped) cardInput.value = clamped;
+            const row = cardInput?.closest('.ingredient-row');
+            if (row) row.classList.toggle('done', clamped >= ing.qty);
+
+            const prog = appState.progress[entry.item];
+            const doneCount = entry.ingredients.filter((ii, ji) => (prog[ji] || 0) >= ii.qty).length;
+            const counter = document.querySelector(`[data-progress="${CSS.escape(entry.item)}"]`);
+            if (counter) counter.textContent = `${doneCount} / ${entry.ingredients.length} ingredients complete`;
+        });
+
+        saveProgress();
+        updatePanel();
+
+        // Update location table row visuals
+        const locInput = document.querySelector(`#locationTableBody input[data-ing="${CSS.escape(ingName)}"]`);
+        if (locInput) {
+            const tr = locInput.closest('tr');
+            if (tr) {
+                tr.style.opacity = v >= +locInput.dataset.total ? '0.5' : '1';
+                tr.querySelectorAll('.loc-item-label').forEach(s =>
+                    s.classList.toggle('loc-item-met', v >= +s.dataset.itemQty));
+            }
+        }
     }
 
     /** Toggles a crafting item in/out of the location view exclusion list and re-renders the table. */
@@ -1429,6 +1463,28 @@
 
         // Refresh panel if open
         updatePanel();
+
+        // Sync location table counter if location view is visible
+        if (appState.view === 'location') {
+            const locEntry = parsedCraftingData.find(e => e.item === itemName);
+            const ingName  = locEntry?.ingredients[index]?.name;
+            if (ingName) {
+                const srcs = locSourceMap.get(ingName) || [];
+                const maxG = srcs.length
+                    ? Math.max(...srcs.map(s => Math.min((appState.progress[s.entry.item]||[])[s.i]||0, s.ing.qty)))
+                    : clamped;
+                const locInput = document.querySelector(`#locationTableBody input[data-ing="${CSS.escape(ingName)}"]`);
+                if (locInput) {
+                    locInput.value = maxG;
+                    const tr = locInput.closest('tr');
+                    if (tr) {
+                        tr.style.opacity = maxG >= +locInput.dataset.total ? '0.5' : '1';
+                        tr.querySelectorAll('.loc-item-label').forEach(s =>
+                            s.classList.toggle('loc-item-met', maxG >= +s.dataset.itemQty));
+                    }
+                }
+            }
+        }
     }
 
     // --- SHOPPING LIST SELECTION ---
@@ -1590,6 +1646,14 @@
             });
         });
 
+        // Populate locSourceMap from all pairs (before exclusion) so setLocGathered
+        // and setIngredientCount can find sources even for excluded items
+        locSourceMap.clear();
+        pairs.forEach(({ entry, ing, i }) => {
+            if (!locSourceMap.has(ing.name)) locSourceMap.set(ing.name, []);
+            locSourceMap.get(ing.name).push({ entry, ing, i });
+        });
+
         // Rebuild item filter checkboxes (all items present in current pairs)
         const itemsInView = [...new Set(pairs.map(p => p.entry.item))].sort();
         const checksEl = document.getElementById('locItemChecks');
@@ -1632,8 +1696,12 @@
 
         // One row per ingredient, sorted alphabetically
         [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([ingName, g]) => {
-            const gathered = appState.locGathered[ingName] || 0;
-            const isDone   = gathered >= g.totalQty;
+            // Derive gathered from progress: max of capped gathered across all sources for this ingredient
+            const allSrcs = locSourceMap.get(ingName) || [];
+            const gathered = allSrcs.length
+                ? Math.max(...allSrcs.map(s => Math.min((appState.progress[s.entry.item]||[])[s.i]||0, s.ing.qty)))
+                : 0;
+            const isDone = gathered >= g.totalQty;
             const tr = document.createElement('tr');
             if (isDone) tr.style.opacity = '0.5';
 
@@ -1651,15 +1719,7 @@
                            min="0" value="${gathered}"
                            data-ing="${escHtml(ingName)}"
                            data-total="${g.totalQty}"
-                           oninput="
-                               const v=Math.max(0,+this.value);
-                               appState.locGathered[this.dataset.ing]=v;
-                               saveLocGathered();
-                               const tr=this.closest('tr');
-                               tr.style.opacity=v>=+this.dataset.total?'0.5':'1';
-                               tr.querySelectorAll('.loc-item-label').forEach(s=>{
-                                   s.classList.toggle('loc-item-met',v>=+s.dataset.itemQty);
-                               });">
+                           oninput="setLocGathered(this.dataset.ing, +this.value)">
                 </td>
                 <td class="loc-ingredient ${g.colorClass}">${escHtml(ingName)}</td>
                 <td class="loc-items-cell">${itemsHtml}</td>`;
