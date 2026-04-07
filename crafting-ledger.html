@@ -26,16 +26,24 @@
     }
 
     .ledger-container {
-        max-width: 1200px;
+        max-width: 1400px;
         width: 100%;
         background-color: var(--parchment);
         background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
         border-left: 4px solid var(--gold);
         border-right: 4px solid var(--gold);
-        padding: 0 30px 30px 30px;
         box-sizing: border-box;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
         min-height: 100vh;
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .main-content {
+        flex: 1;
+        min-width: 0;
+        padding: 0 30px 30px 30px;
     }
 
     /* --- STICKY HEADER SECTION --- */
@@ -75,18 +83,24 @@
 
     .controls {
         display: grid;
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 1fr 1fr;
         gap: 15px;
         padding-bottom: 20px;
-        max-width: 900px;
         margin: 0 auto;
         align-items: stretch;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 800px) {
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
-        .list-toggle-btn { grid-column: 1; }
+        .ledger-container { flex-direction: column; }
+        .shopping-panel {
+            width: 100% !important;
+            height: auto !important;
+            position: static !important;
+            border-right: none !important;
+            border-bottom: 3px solid var(--gold);
+        }
     }
 
     input, select {
@@ -99,24 +113,6 @@
         font-family: 'Lora', serif;
     }
 
-    .list-toggle-btn {
-        padding: 12px 18px;
-        border: 2px solid var(--gold);
-        background: var(--gold);
-        color: #fff;
-        font-size: 1rem;
-        font-family: 'Lora', serif;
-        font-weight: 700;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: background 0.2s, color 0.2s;
-        box-sizing: border-box;
-    }
-
-    .list-toggle-btn:hover {
-        background: var(--crimson);
-        border-color: var(--crimson);
-    }
 
     /* --- ITEM GRID & CARDS --- */
     .items-grid {
@@ -406,48 +402,22 @@
         text-decoration: underline;
     }
 
-    /* --- SHOPPING PANEL --- */
+    /* --- SHOPPING PANEL (permanent left sidebar) --- */
     .shopping-panel {
-        position: fixed;
-        top: 0;
-        right: -380px;
-        width: 360px;
-        height: 100vh;
-        background-color: var(--parchment);
-        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
-        border-left: 4px solid var(--gold);
-        z-index: 2000;
-        transition: right 0.3s ease;
-        overflow: hidden;
+        width: 300px;
+        flex-shrink: 0;
+        border-right: 3px solid var(--gold);
         display: flex;
         flex-direction: column;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.4);
-    }
-
-    .shopping-panel.open {
-        right: 0;
-    }
-
-    .panel-backdrop {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 1999;
-    }
-
-    .panel-backdrop.open {
-        display: block;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: hidden;
     }
 
     .panel-header {
-        padding: 20px;
+        padding: 20px 15px 15px;
         border-bottom: 2px solid var(--gold);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        position: sticky;
-        top: 0;
         background-color: var(--parchment);
         background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
         flex-shrink: 0;
@@ -456,30 +426,19 @@
     .panel-title {
         font-family: 'MedievalSharp', cursive;
         color: var(--crimson);
-        font-size: 1.4rem;
-        margin: 0;
+        font-size: 1.3rem;
+        margin: 0 0 4px 0;
     }
 
-    .panel-close-btn {
-        background: transparent;
-        border: none;
-        color: var(--gold);
-        font-size: 1.4rem;
-        cursor: pointer;
-        padding: 4px 8px;
-        line-height: 1;
-        min-height: 44px;
-        min-width: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .panel-subtitle {
+        font-size: 0.78rem;
+        color: #888;
+        font-style: italic;
     }
-
-    .panel-close-btn:hover { color: var(--crimson); }
 
     .panel-content {
         flex: 1;
-        padding: 15px;
+        padding: 12px 15px;
         overflow-y: auto;
     }
 
@@ -488,12 +447,12 @@
         font-style: italic;
         color: #888;
         margin-top: 40px;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         line-height: 1.6;
     }
 
     .panel-footer {
-        padding: 15px;
+        padding: 12px 15px;
         border-top: 2px solid var(--gold);
         background-color: var(--parchment);
         background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
@@ -577,72 +536,63 @@
 
     .shop-location strong { color: var(--gold); }
 
-    @media (max-width: 600px) {
-        .shopping-panel {
-            width: 100vw;
-            right: -100vw;
-        }
-        .shopping-panel.open {
-            right: 0;
-        }
-    }
-
 </style>
 </head>
 <body>
 
 <div class="ledger-container">
-    <div class="sticky-header">
-        <div class="header-section">
-            <h1>Masterwork Crafting Ledger</h1>
-            <p class="credits">
-                Created by the <strong><a href="https://discord.gg/ZAEfYwdjc8" target="_blank" class="discord-link">Synergy</a></strong> Guild &bull; Neverwinter<br>
-                <span>Data compiled by <strong>Ivydora</strong> & <strong>Asura</strong></span>
-            </p>
-        </div>
 
-        <div class="controls">
-            <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="Search item or class..." onkeyup="filterData()">
-            </div>
-            <div class="filter-wrapper">
-                <select id="classFilter" onchange="filterData()">
-                    <option value="All">All Classes</option>
-                    <option value="Barbarian">Barbarian</option>
-                    <option value="Bard">Bard</option>
-                    <option value="Cleric">Cleric</option>
-                    <option value="Fighter">Fighter</option>
-                    <option value="Paladin">Paladin</option>
-                    <option value="Ranger">Ranger</option>
-                    <option value="Rogue">Rogue</option>
-                    <option value="Warlock">Warlock</option>
-                    <option value="Wizard">Wizard</option>
-                </select>
-            </div>
-            <button class="list-toggle-btn" onclick="togglePanel()" id="listToggleBtn">
-                Shopping List (<span id="listCount">0</span>)
-            </button>
+    <!-- Left: permanent shopping list sidebar -->
+    <div id="shoppingPanel" class="shopping-panel" aria-label="Shopping List">
+        <div class="panel-header">
+            <h2 class="panel-title">Shopping List</h2>
+            <div class="panel-subtitle" id="listCount">0 items selected</div>
+        </div>
+        <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
+        <div class="panel-footer">
+            <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
         </div>
     </div>
-    <div id="ingredientFilterBanner" class="ingredient-filter-banner">
-        Showing items requiring: <strong id="ingredientFilterLabel"></strong>
-        <button class="clear-filter-btn" onclick="clearIngredientFilter()">&#x2715; Clear</button>
-    </div>
-    <div id="itemsGrid" class="items-grid"></div>
-</div>
 
-<!-- Shopping List Drawer -->
-<div id="shoppingPanel" class="shopping-panel" aria-hidden="true" aria-label="Shopping List">
-    <div class="panel-header">
-        <h2 class="panel-title">Shopping List</h2>
-        <button class="panel-close-btn" onclick="togglePanel()" aria-label="Close shopping list">&#x2715;</button>
+    <!-- Right: main content -->
+    <div class="main-content">
+        <div class="sticky-header">
+            <div class="header-section">
+                <h1>Masterwork Crafting Ledger</h1>
+                <p class="credits">
+                    Created by the <strong><a href="https://discord.gg/ZAEfYwdjc8" target="_blank" class="discord-link">Synergy</a></strong> Guild &bull; Neverwinter<br>
+                    <span>Data compiled by <strong>Ivydora</strong> & <strong>Asura</strong></span>
+                </p>
+            </div>
+
+            <div class="controls">
+                <div class="search-wrapper">
+                    <input type="text" id="searchInput" placeholder="Search item or class..." onkeyup="filterData()">
+                </div>
+                <div class="filter-wrapper">
+                    <select id="classFilter" onchange="filterData()">
+                        <option value="All">All Classes</option>
+                        <option value="Barbarian">Barbarian</option>
+                        <option value="Bard">Bard</option>
+                        <option value="Cleric">Cleric</option>
+                        <option value="Fighter">Fighter</option>
+                        <option value="Paladin">Paladin</option>
+                        <option value="Ranger">Ranger</option>
+                        <option value="Rogue">Rogue</option>
+                        <option value="Warlock">Warlock</option>
+                        <option value="Wizard">Wizard</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="ingredientFilterBanner" class="ingredient-filter-banner">
+            Showing items requiring: <strong id="ingredientFilterLabel"></strong>
+            <button class="clear-filter-btn" onclick="clearIngredientFilter()">&#x2715; Clear</button>
+        </div>
+        <div id="itemsGrid" class="items-grid"></div>
     </div>
-    <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
-    <div class="panel-footer">
-        <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
-    </div>
+
 </div>
-<div id="panelBackdrop" class="panel-backdrop" onclick="togglePanel()"></div>
 
 <script>
     const craftingData = [
@@ -957,7 +907,6 @@
     const appState = {
         selectedItems: new Set(),
         progress: {},
-        panelOpen: false,
         ingredientFilter: null
     };
 
@@ -1127,7 +1076,7 @@
         }
 
         // Refresh panel if open
-        if (appState.panelOpen) updatePanel();
+        updatePanel();
     }
 
     // --- SHOPPING LIST SELECTION ---
@@ -1142,23 +1091,10 @@
         // Re-render to reorder (selected items float to top)
         filterData();
 
-        // Update header count
-        document.getElementById('listCount').textContent = appState.selectedItems.size;
-
-        if (appState.panelOpen) updatePanel();
+        updatePanel();
     }
 
     // --- SHOPPING PANEL ---
-    function togglePanel() {
-        appState.panelOpen = !appState.panelOpen;
-        const panel = document.getElementById('shoppingPanel');
-        const backdrop = document.getElementById('panelBackdrop');
-        panel.classList.toggle('open', appState.panelOpen);
-        backdrop.classList.toggle('open', appState.panelOpen);
-        panel.setAttribute('aria-hidden', !appState.panelOpen);
-        if (appState.panelOpen) updatePanel();
-    }
-
     function buildShoppingList() {
         const aggregated = {};
 
@@ -1182,7 +1118,8 @@
 
     function updatePanel() {
         const content = document.getElementById('shoppingContent');
-        document.getElementById('listCount').textContent = appState.selectedItems.size;
+        const n = appState.selectedItems.size;
+        document.getElementById('listCount').textContent = n === 0 ? 'No items selected' : `${n} item${n === 1 ? '' : 's'} selected`;
 
         if (appState.selectedItems.size === 0) {
             content.innerHTML = '<p class="panel-empty">No items added yet.<br>Click <strong>+ Add to List</strong> on any item card to begin.</p>';
@@ -1242,13 +1179,9 @@
         storage.removeItem('synergy-crafting-shopping');
         appState.selectedItems = new Set();
         filterData(); // full re-render restores all checkboxes to unchecked
-        if (appState.panelOpen) updatePanel();
+        updatePanel();
     }
 
-    // Close panel with Escape key
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && appState.panelOpen) togglePanel();
-    });
 
     // --- INITIAL LOAD ---
     loadState();
