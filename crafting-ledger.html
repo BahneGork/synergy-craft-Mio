@@ -1558,25 +1558,19 @@
         for (const itemName of appState.selectedItems) {
             const entry = parsedCraftingData.find(e => e.item === itemName);
             if (!entry) continue;
-            const prog = appState.progress[itemName] || [];
 
-            entry.ingredients.forEach((ing, i) => {
+            entry.ingredients.forEach((ing) => {
                 if (!aggregated[ing.name]) {
                     aggregated[ing.name] = { qty: 0, locations: new Set(), collected: 0 };
                 }
                 aggregated[ing.name].qty += ing.qty;
                 aggregated[ing.name].locations.add(ing.location);
-                // Only sum per-item progress here; locGathered overrides are applied below
-                aggregated[ing.name].collected += Math.min(prog[i] || 0, ing.qty);
             });
         }
 
-        // For ingredients tracked via location view, use the raw entered value instead of the
-        // sum of per-item capped values (which overcounts when multiple items share an ingredient)
+        // locGathered is the sole source of truth for collected amounts
         Object.keys(aggregated).forEach(ingName => {
-            if (appState.locGathered[ingName] !== undefined) {
-                aggregated[ingName].collected = Math.min(appState.locGathered[ingName], aggregated[ingName].qty);
-            }
+            aggregated[ingName].collected = Math.min(appState.locGathered[ingName] || 0, aggregated[ingName].qty);
         });
 
         return aggregated;
@@ -1594,7 +1588,15 @@
         }
 
         const aggregated = buildShoppingList();
-        const sorted = Object.entries(aggregated).sort((a, b) => a[0].localeCompare(b[0]));
+        const sorted = Object.entries(aggregated).sort(([aName, aData], [bName, bData]) => {
+            const aDone = aData.collected >= aData.qty ? 1 : 0;
+            const bDone = bData.collected >= bData.qty ? 1 : 0;
+            if (aDone !== bDone) return aDone - bDone;                        // incomplete first
+            const aLoc = [...aData.locations].sort().join('|');
+            const bLoc = [...bData.locations].sort().join('|');
+            if (aLoc !== bLoc) return aLoc.localeCompare(bLoc);               // then by location
+            return aName.localeCompare(bName);                                // then alphabetically
+        });
 
         const rows = sorted.map(([name, data]) => {
             const locationsHtml = [...data.locations].map(l => `<strong>${escHtml(l)}</strong>`).join(', ');
