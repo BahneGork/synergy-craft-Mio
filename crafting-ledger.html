@@ -256,6 +256,18 @@
         transition: color 0.2s, text-decoration 0.2s;
     }
 
+    .color-orange { color: #e67e22; font-weight: 800; }
+    .color-purple { color: #8e44ad; font-weight: 700; }
+    .color-blue   { color: #0070dd; font-weight: 700; }
+
+    .ingredient-row.done .name,
+    .ingredient-row.done .name.color-orange,
+    .ingredient-row.done .name.color-purple,
+    .ingredient-row.done .name.color-blue {
+        text-decoration: line-through;
+        color: #aaa;
+    }
+
     /* Counter control: [  5  / 24 ] */
     .counter-group {
         display: flex;
@@ -408,10 +420,6 @@
     }
 
     /* Done ingredient state (collected >= needed) */
-    .ingredient-row.done .name {
-        text-decoration: line-through;
-        color: #aaa;
-    }
 
     .ingredient-row.done .qty {
         background: #c8e6c9;
@@ -936,6 +944,20 @@
   }
 ];
 
+    // --- MATERIAL COLOUR CODING ---
+    function getColorClass(name) {
+        const n = name.toLowerCase();
+        if (n.includes('druegarsteel') || n.includes('fallen god') || n.includes('abyssal crystal') ||
+            n.includes('menzoberranzan faerzress') || n.includes('mushroom droplet') || n.includes('perfect marilith'))
+            return 'color-orange';
+        if (n.includes('calcified webbing') || n.includes('demonweb faerzress') || n.includes('faerzress rock') ||
+            n.includes('mushroom log') || n.includes('shroomsap spores') || n.includes('fungal moss') ||
+            n.includes('fluorescent flora') || n.includes('goristro hide') || n.includes('luminescent darklake'))
+            return 'color-purple';
+        if (n.includes('terebinth')) return 'color-blue';
+        return '';
+    }
+
     // --- PARSE INFRASTRUCTURE ---
     function parseIngredient(resource) {
         const match = resource.match(/^(\d+)x\s+(.+)$/);
@@ -1014,7 +1036,7 @@
                     <div class="ingredient-row${isDone ? ' done' : ''}">
                         <div class="qty-name-group">
                             <span class="qty">${ing.qty}x</span>
-                            <button class="name-btn" data-ingredient="${escHtml(ing.name)}" onclick="showIngredientUses(this.dataset.ingredient)">${escHtml(ing.name)}</button>
+                            <button class="name-btn ${getColorClass(ing.name)}" data-ingredient="${escHtml(ing.name)}" onclick="showIngredientUses(this.dataset.ingredient)">${escHtml(ing.name)}</button>
                             <div class="counter-group">
                                 <input type="number" class="counter-input"
                                        min="0" max="${ing.qty}"
