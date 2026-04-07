@@ -129,14 +129,18 @@
     .loc-table td {
         padding: 8px 12px;
         border-bottom: 1px solid rgba(176, 141, 68, 0.2);
-        vertical-align: middle;
+        vertical-align: top;
     }
 
     .loc-table tbody tr:hover td { background: rgba(176, 141, 68, 0.06); }
 
     .loc-needed { font-weight: 700; color: var(--crimson); white-space: nowrap; }
     .loc-ingredient { font-weight: 700; }
-    .loc-item-name { font-size: 0.82rem; color: #888; font-style: italic; }
+    .loc-items-cell { min-width: 180px; }
+    .loc-item-entry { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+    .loc-item-entry + .loc-item-entry { border-top: 1px solid rgba(176,141,68,0.15); margin-top: 3px; padding-top: 5px; }
+    .loc-item-name { flex: 1; font-size: 0.82rem; color: #888; font-style: italic; }
+    .loc-item-qty { font-size: 0.82rem; font-weight: 700; color: var(--crimson); white-space: nowrap; }
 
     .loc-empty {
         text-align: center;
@@ -846,9 +850,8 @@
                 <thead>
                     <tr>
                         <th>Needed</th>
-                        <th>Gathered</th>
                         <th>Ingredient</th>
-                        <th>Crafting Item</th>
+                        <th>Crafting Items</th>
                     </tr>
                 </thead>
                 <tbody id="locationTableBody"></tbody>
@@ -1505,7 +1508,7 @@
         if (inLocation) renderLocationTable();
     }
 
-    /** Builds the flat ingredient table for Location View. Filters by search, class, and selected location; sorts rows alphabetically by ingredient name. */
+    /** Builds the location table grouped by ingredient. Each ingredient occupies one row; the items column lists every crafting item that needs it at this location, each with its own gathered counter. */
     function renderLocationTable() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal  = document.getElementById('classFilter').value;
@@ -1520,46 +1523,66 @@
             return;
         }
 
-        const rows = [];
+        // Collect all matching item×ingredient pairs
+        const pairs = [];
         parsedCraftingData.forEach(entry => {
             const matchesSearch = entry.item.toLowerCase().includes(searchVal) ||
                                   entry.classes.some(c => c.toLowerCase().includes(searchVal));
             const matchesClass  = classVal === 'All' || entry.classes.includes(classVal);
             if (!matchesSearch || !matchesClass) return;
-
             entry.ingredients.forEach((ing, i) => {
                 if (ing.location !== locVal) return;
-                rows.push({ entry, ing, i });
+                pairs.push({ entry, ing, i });
             });
         });
 
-        rows.sort((a, b) => a.ing.name.localeCompare(b.ing.name));
+        // Group by ingredient name
+        const grouped = new Map();
+        pairs.forEach(({ entry, ing, i }) => {
+            if (!grouped.has(ing.name)) {
+                grouped.set(ing.name, { totalQty: 0, totalGathered: 0, colorClass: getColorClass(ing.name), sources: [] });
+            }
+            const g = grouped.get(ing.name);
+            const prog = appState.progress[entry.item] || [];
+            const gathered = Math.min(prog[i] || 0, ing.qty);
+            g.totalQty    += ing.qty;
+            g.totalGathered += gathered;
+            g.sources.push({ entry, ing, i, gathered });
+        });
 
-        if (rows.length === 0) {
+        if (grouped.size === 0) {
             empty.textContent = 'No ingredients found for this selection.';
             empty.style.display = 'block';
             return;
         }
 
         empty.style.display = 'none';
-        rows.forEach(({ entry, ing, i }) => {
-            const prog = appState.progress[entry.item] || [];
-            const gathered = prog[i] || 0;
-            const isDone = gathered >= ing.qty;
+
+        // One row per ingredient, sorted alphabetically
+        [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([ingName, g]) => {
+            const isDone = g.totalGathered >= g.totalQty;
             const tr = document.createElement('tr');
             if (isDone) tr.style.opacity = '0.5';
-            tr.innerHTML = `
-                <td class="loc-needed">${ing.qty}x</td>
-                <td>
+
+            const itemsHtml = g.sources.map(({ entry, ing, i, gathered }) => `
+                <div class="loc-item-entry">
+                    <span class="loc-item-name">${escHtml(entry.item)}</span>
+                    <span class="loc-item-qty">${ing.qty}x</span>
                     <input type="number" class="counter-input"
                            min="0" max="${ing.qty}" value="${gathered}"
                            data-item="${escHtml(entry.item)}"
                            data-index="${i}"
                            data-max="${ing.qty}"
-                           oninput="setIngredientCount(this.dataset.item, +this.dataset.index, +this.dataset.max, +this.value); this.closest('tr').style.opacity = (+this.value >= +this.dataset.max) ? '0.5' : '1';">
-                </td>
-                <td class="loc-ingredient ${getColorClass(ing.name)}">${escHtml(ing.name)}</td>
-                <td class="loc-item-name">${escHtml(entry.item)}</td>`;
+                           oninput="setIngredientCount(this.dataset.item,+this.dataset.index,+this.dataset.max,+this.value);
+                                    const r=this.closest('tr'),ins=r.querySelectorAll('input.counter-input');
+                                    let t=0,n=0; ins.forEach(x=>{t+=+x.value;n+=+x.dataset.max;});
+                                    r.style.opacity=t>=n?'0.5':'1';">`
+            ).join('</div>') + '</div>';
+
+            tr.innerHTML = `
+                <td class="loc-needed">${g.totalQty}x</td>
+                <td class="loc-ingredient ${g.colorClass}">${escHtml(ingName)}</td>
+                <td class="loc-items-cell">${itemsHtml}</td>`;
             tbody.appendChild(tr);
         });
     }
