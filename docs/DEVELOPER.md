@@ -61,6 +61,28 @@ The `progress` array is indexed by ingredient position within that item's `ingre
 | `localStorage` quota exceeded (~5 MB) | `setItem` throws — same fallback path | Extremely unlikely given the data size |
 | Item name changed in `craftingData` | Old key in `progress` is now orphaned; new name starts fresh | Item names are the primary key — treat them as immutable |
 
+### Hosting on a domain
+
+When served over HTTP/HTTPS, `localStorage` is scoped to the **origin** — the combination of protocol, hostname, and port. This has different implications than running from a local file.
+
+**What improves:**
+- Safari's ITP restriction does not apply to hosted origins — `localStorage` works reliably without the in-memory fallback
+- The storage key is stable as long as the URL doesn't change, regardless of where the file physically lives on the server
+
+**New failure modes introduced by hosting:**
+
+| Cause | Effect | Notes |
+|---|---|---|
+| Domain changes (e.g. moved to a new host) | Old origin's storage is inaccessible — fresh start | `http://old.com` and `http://new.com` are separate origins |
+| HTTP → HTTPS migration | Protocol is part of the origin — treated as a new origin | Always host on HTTPS from the start to avoid this |
+| Subdomain change | `crafting.example.com` and `example.com` are different origins | Plan the final URL before sharing with users |
+| Port change | `example.com:8080` and `example.com` are different origins | Only relevant for self-hosted setups |
+| User visits on a different device | `localStorage` is per-browser, per-device — not synced across users or devices | Each visitor has their own independent save |
+| Multiple people using the same hosted URL | Each person's browser has its own isolated `localStorage` | This is correct behaviour — users do not share progress |
+| Moving from local file to hosted | `file://` and `https://` are different origins — local progress does not carry over | Advise users to export before switching |
+
+**Key point:** once you choose a URL to host the tool on, treat it as permanent. Any change to the origin (protocol, domain, subdomain, port) creates a new storage slot and leaves all existing user progress unreachable.
+
 ---
 
 ## Data Format

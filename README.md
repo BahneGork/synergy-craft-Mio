@@ -55,6 +55,13 @@ Progress and shopping list selections are stored in your browser using `localSto
 
 **In short:** keep the file in the same place, use a normal (non-incognito) window, and don't clear site data for the file. If you need to share progress or move to another machine, export to CSV first.
 
+**If you host the tool on a domain:**
+
+- Safari's local-file restriction no longer applies — saving is reliable in all browsers
+- Each visitor has their own independent save; users do not share progress
+- The URL must stay the same forever — changing the domain, subdomain, or switching from `http` to `https` creates a new storage slot and leaves existing saves behind
+- Moving from the local file to a hosted URL also starts fresh — export to CSV first
+
 ---
 
 ## Development

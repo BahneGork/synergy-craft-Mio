@@ -107,6 +107,15 @@ Every time you update a counter, it saves instantly in your browser using `local
 
 **Bottom line:** keep the file in the same place on your computer and use a regular (non-incognito) browser window. If you need to move to another machine or hand your list to someone else, export to CSV first.
 
+### If the tool is hosted on a website
+
+If someone in your guild hosts the tool online rather than distributing the HTML file, saving still works the same way — but a few things are different:
+
+- **Safari works properly.** The Safari restriction only affects local files; a hosted version saves reliably in all browsers.
+- **Each person has their own save.** Everyone who visits the site gets their own independent progress — you don't share or overwrite each other's data.
+- **The URL must stay the same.** If the site ever moves to a new address (different domain, or switches from `http` to `https`), all saved progress is left behind at the old address. There is no migration — export to CSV before any URL change.
+- **Switching from the file to the website starts fresh.** If you were using the downloaded file and then switch to the hosted version, your local progress does not carry over. Export first.
+
 ### Resetting progress
 The **Reset All Progress** button at the bottom of the shopping list panel clears all your gathered counts and your shopping list selection. It asks for confirmation — click it once to see the prompt, then once more to confirm.
 
