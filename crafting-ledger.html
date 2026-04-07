@@ -526,6 +526,43 @@
         color: #fff;
     }
 
+    .export-btn-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .export-btn {
+        flex: 1;
+        padding: 6px;
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        font-family: 'Lora', serif;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .export-btn:hover {
+        background: var(--gold);
+        color: #fff;
+    }
+
+    .export-btn.empty-warn {
+        border-color: var(--crimson);
+        color: var(--crimson);
+        animation: warnShake 0.3s ease;
+    }
+
+    @keyframes warnShake {
+        0%, 100% { transform: translateX(0); }
+        25%       { transform: translateX(-4px); }
+        75%       { transform: translateX(4px); }
+    }
+
     /* Shopping list rows */
     .shop-section-header {
         font-size: 0.75rem;
@@ -601,6 +638,11 @@
         <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
         <div class="panel-footer">
             <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
+            <div class="export-btn-row">
+                <button class="export-btn" id="exportTxtBtn" onclick="exportTxt()">TXT</button>
+                <button class="export-btn" id="exportMdBtn"  onclick="exportMd()">MD</button>
+                <button class="export-btn" id="exportCsvBtn" onclick="exportCsv()">CSV</button>
+            </div>
         </div>
     </div>
 
@@ -1254,6 +1296,74 @@
         updatePanel();
     }
 
+
+    // --- EXPORT ---
+    function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function warnEmptyList(btnId) {
+        const btn = document.getElementById(btnId);
+        btn.classList.add('empty-warn');
+        setTimeout(() => btn.classList.remove('empty-warn'), 600);
+    }
+
+    function exportRows() {
+        const agg = buildShoppingList();
+        const date = new Date().toISOString().slice(0, 10);
+        const items = appState.selectedItems.size;
+        const rows = Object.entries(agg).sort((a, b) => a[0].localeCompare(b[0])).map(([name, d]) => ({
+            name,
+            needed: d.qty,
+            collected: d.collected,
+            source: [...d.locations].join(' / ')
+        }));
+        return { rows, date, items };
+    }
+
+    function exportTxt() {
+        if (appState.selectedItems.size === 0) { warnEmptyList('exportTxtBtn'); return; }
+        const { rows, date, items } = exportRows();
+        const col = [40, 8, 11, 0];
+        const header = `Shopping List \u2014 ${items} item${items !== 1 ? 's' : ''} selected\nExported: ${date}\n\n` +
+            'Ingredient'.padEnd(col[0]) + 'Needed'.padEnd(col[1]) + 'Collected'.padEnd(col[2]) + 'Source\n' +
+            '-'.repeat(80) + '\n';
+        const body = rows.map(r =>
+            r.name.padEnd(col[0]) + String(r.needed).padEnd(col[1]) + String(r.collected).padEnd(col[2]) + r.source
+        ).join('\n');
+        downloadFile('crafting-list.txt', header + body, 'text/plain');
+    }
+
+    function exportMd() {
+        if (appState.selectedItems.size === 0) { warnEmptyList('exportMdBtn'); return; }
+        const { rows, date, items } = exportRows();
+        const lines = [
+            `# Shopping List`,
+            `*${items} item${items !== 1 ? 's' : ''} selected \u2014 exported ${date}*`,
+            '',
+            '| Ingredient | Needed | Collected | Source |',
+            '|---|---|---|---|',
+            ...rows.map(r => `| ${r.name} | ${r.needed} | ${r.collected} | ${r.source} |`)
+        ];
+        downloadFile('crafting-list.md', lines.join('\n'), 'text/markdown');
+    }
+
+    function exportCsv() {
+        if (appState.selectedItems.size === 0) { warnEmptyList('exportCsvBtn'); return; }
+        const { rows } = exportRows();
+        const q = s => `"${String(s).replace(/"/g, '""')}"`;
+        const lines = [
+            'Ingredient,Needed,Collected,Source',
+            ...rows.map(r => [q(r.name), q(r.needed), q(r.collected), q(r.source)].join(','))
+        ];
+        downloadFile('crafting-list.csv', lines.join('\n'), 'text/csv');
+    }
 
     // --- INITIAL LOAD ---
     loadState();
