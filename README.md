@@ -64,6 +64,39 @@ Progress and shopping list selections are stored in your browser using `localSto
 
 ---
 
+## Roadmap
+
+### Stable persistence for hosted deployments
+
+The current `localStorage` approach is fragile when the tool is hosted: any URL change orphans all existing saves, and there is no way to migrate or back up data short of exporting to CSV. The goal is a server-side persistence layer that survives URL changes and works across devices.
+
+**Planned approach:**
+- Add a lightweight companion backend (a small Node.js or PHP service, or a hosted option like Supabase/Firebase) that stores progress against a user-chosen identifier (e.g. a guild tag or username)
+- Keep the front end as a single HTML file; the backend is an optional extra layer — the tool still works without it using the existing `localStorage` fallback
+- Support files would live in a `server/` directory alongside the HTML; a README explains setup for self-hosters
+- The save/load functions (`saveProgress`, `saveSelected`, `loadState`) would be adapted to call the API when available and fall back to `localStorage` when not
+
+**What this solves:**
+- Progress survives URL changes and server migrations
+- Multiple devices can share the same save (log in on your phone during a farming run, log in on your PC at home)
+- Guild members could optionally share a save or each have their own account under one hosted instance
+
+---
+
+### Android app
+
+The tool is already a self-contained web page, which makes an Android app achievable without a full rewrite.
+
+**Two viable approaches:**
+
+**Option A — Progressive Web App (PWA):** Add a `manifest.json` and a service worker to the existing HTML. Users can then install it directly from their browser to their home screen. It runs offline, looks like a native app, and requires no app store. This is the lowest-effort path and works on Android and iOS.
+
+**Option B — WebView wrapper:** Package the HTML file inside a native Android shell using Android WebView (or a tool like Capacitor or Cordova). This produces an actual `.apk` that can be sideloaded or published to the Play Store. Gives more control over permissions, splash screen, and offline behaviour but requires a build environment.
+
+**Preference:** Start with the PWA approach (Option A) — it requires only a few additional files (`manifest.json`, `sw.js`, an icon set) and no change to the core HTML logic. If a Play Store listing becomes a goal, wrap the PWA in a Trusted Web Activity (TWA), which is the recommended Android-native path for PWAs and requires minimal extra code.
+
+---
+
 ## Development
 
 The entire application is a single HTML file — no build step, no package manager.
