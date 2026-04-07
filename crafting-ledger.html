@@ -661,6 +661,33 @@
         color: #fff;
     }
 
+    .backup-btn-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+
+    .backup-btn {
+        flex: 1;
+        padding: 7px 4px;
+        font-size: 0.75rem;
+        font-family: 'Lora', serif;
+        font-weight: 700;
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--ink);
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .backup-btn:hover {
+        background: var(--gold);
+        color: #fff;
+    }
+
     .export-btn-row {
         display: flex;
         gap: 8px;
@@ -772,13 +799,20 @@
         </div>
         <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
         <div class="panel-footer">
-            <button class="panel-reset-btn" id="resetGatheredBtn" onclick="confirmResetGathered()">Reset Gathered</button>
-            <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
             <div class="export-btn-row">
                 <button class="export-btn" id="exportTxtBtn" onclick="exportTxt()">TXT</button>
                 <button class="export-btn" id="exportMdBtn"  onclick="exportMd()">MD</button>
                 <button class="export-btn" id="exportCsvBtn" onclick="exportCsv()">CSV</button>
             </div>
+            <div class="backup-btn-row">
+                <button class="backup-btn" onclick="exportBackup()">&#8659; Export Backup</button>
+                <label class="backup-btn" id="importBackupLabel">
+                    &#8657; Import Backup
+                    <input type="file" accept=".json" style="display:none" onchange="importBackup(this)">
+                </label>
+            </div>
+            <button class="panel-reset-btn" id="resetGatheredBtn" onclick="confirmResetGathered()">Reset Gathered</button>
+            <button class="panel-reset-btn" id="resetBtn" onclick="confirmReset()">Reset All Progress</button>
         </div>
     </div>
 
@@ -1905,6 +1939,54 @@
             ...rows.map(r => [q(r.name), q(r.needed), q(r.collected), q(r.source)].join(','))
         ];
         downloadFile('crafting-list.csv', lines.join('\n'), 'text/csv');
+    }
+
+    // --- BACKUP / RESTORE ---
+    /** Downloads all app state as a JSON backup file. Safe to store and re-import after moving the HTML file. */
+    function exportBackup() {
+        const backup = {
+            version: 1,
+            exported: new Date().toISOString(),
+            shopping: [...appState.selectedItems],
+            locGathered: appState.locGathered
+        };
+        downloadFile(
+            `crafting-backup-${new Date().toISOString().slice(0, 10)}.json`,
+            JSON.stringify(backup, null, 2),
+            'application/json'
+        );
+    }
+
+    /** Reads a backup JSON file and restores app state, then re-renders. */
+    function importBackup(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const backup = JSON.parse(e.target.result);
+                if (backup.version !== 1) throw new Error('Unknown backup version');
+
+                if (Array.isArray(backup.shopping)) {
+                    appState.selectedItems = new Set(backup.shopping);
+                    saveSelected();
+                }
+                if (backup.locGathered && typeof backup.locGathered === 'object') {
+                    appState.locGathered = backup.locGathered;
+                    saveProgress();
+                }
+
+                filterData();
+                updatePanel();
+                if (appState.view === 'location') renderLocationTable();
+
+                alert(`Backup restored (${new Date(backup.exported).toLocaleString()})`);
+            } catch (err) {
+                alert('Could not read backup file: ' + err.message);
+            }
+            input.value = ''; // reset so same file can be re-imported
+        };
+        reader.readAsText(file);
     }
 
     // --- INITIAL LOAD ---
