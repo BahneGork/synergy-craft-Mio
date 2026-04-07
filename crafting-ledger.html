@@ -136,11 +136,10 @@
 
     .loc-needed { font-weight: 700; color: var(--crimson); white-space: nowrap; }
     .loc-ingredient { font-weight: 700; }
-    .loc-items-cell { min-width: 180px; }
-    .loc-item-entry { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-    .loc-item-entry + .loc-item-entry { border-top: 1px solid rgba(176,141,68,0.15); margin-top: 3px; padding-top: 5px; }
-    .loc-item-name { flex: 1; font-size: 0.82rem; color: #888; font-style: italic; }
-    .loc-item-qty { font-size: 0.82rem; font-weight: 700; color: var(--crimson); white-space: nowrap; }
+    .loc-items-cell { min-width: 180px; line-height: 1.7; }
+    .loc-item-label { font-size: 0.82rem; color: #888; font-style: italic; transition: color 0.2s; }
+    .loc-item-label.loc-item-met { color: #4caf50; font-style: normal; }
+    .loc-item-sep { color: #aaa; }
 
     .loc-empty {
         text-align: center;
@@ -850,6 +849,7 @@
                 <thead>
                     <tr>
                         <th>Needed</th>
+                        <th>Gathered</th>
                         <th>Ingredient</th>
                         <th>Crafting Items</th>
                     </tr>
@@ -1201,6 +1201,7 @@
     const appState = {
         selectedItems: new Set(),
         progress: {},
+        locGathered: {},   // { "Ingredient Name": N } — gathered counter for Location View
         view: 'cards'
     };
 
@@ -1220,9 +1221,12 @@
             if (prog) appState.progress = JSON.parse(prog);
             const shop = storage.getItem('synergy-crafting-shopping');
             if (shop) appState.selectedItems = new Set(JSON.parse(shop));
+            const loc = storage.getItem('synergy-crafting-loc-gathered');
+            if (loc) appState.locGathered = JSON.parse(loc);
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
+            appState.locGathered = {};
         }
     }
 
@@ -1232,6 +1236,10 @@
 
     function saveSelected() {
         storage.setItem('synergy-crafting-shopping', JSON.stringify([...appState.selectedItems]));
+    }
+
+    function saveLocGathered() {
+        storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
     }
 
     // --- RENDER ---
@@ -1508,7 +1516,7 @@
         if (inLocation) renderLocationTable();
     }
 
-    /** Builds the location table grouped by ingredient. Each ingredient occupies one row; the items column lists every crafting item that needs it at this location, each with its own gathered counter. */
+    /** Builds the location table grouped by ingredient. One row per ingredient with a single gathered counter; the items column lists every crafting item that needs it (comma-separated with qty). Item names turn green when the gathered total meets their individual need. */
     function renderLocationTable() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal  = document.getElementById('classFilter').value;
@@ -1536,18 +1544,15 @@
             });
         });
 
-        // Group by ingredient name
+        // Group by ingredient name, accumulate total needed
         const grouped = new Map();
         pairs.forEach(({ entry, ing, i }) => {
             if (!grouped.has(ing.name)) {
-                grouped.set(ing.name, { totalQty: 0, totalGathered: 0, colorClass: getColorClass(ing.name), sources: [] });
+                grouped.set(ing.name, { totalQty: 0, colorClass: getColorClass(ing.name), sources: [] });
             }
             const g = grouped.get(ing.name);
-            const prog = appState.progress[entry.item] || [];
-            const gathered = Math.min(prog[i] || 0, ing.qty);
-            g.totalQty    += ing.qty;
-            g.totalGathered += gathered;
-            g.sources.push({ entry, ing, i, gathered });
+            g.totalQty += ing.qty;
+            g.sources.push({ entry, ing, i });
         });
 
         if (grouped.size === 0) {
@@ -1560,27 +1565,35 @@
 
         // One row per ingredient, sorted alphabetically
         [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([ingName, g]) => {
-            const isDone = g.totalGathered >= g.totalQty;
+            const gathered = appState.locGathered[ingName] || 0;
+            const isDone   = gathered >= g.totalQty;
             const tr = document.createElement('tr');
             if (isDone) tr.style.opacity = '0.5';
 
-            const itemsHtml = g.sources.map(({ entry, ing, i, gathered }) => `
-                <div class="loc-item-entry">
-                    <span class="loc-item-name">${escHtml(entry.item)}</span>
-                    <span class="loc-item-qty">${ing.qty}x</span>
-                    <input type="number" class="counter-input"
-                           min="0" max="${ing.qty}" value="${gathered}"
-                           data-item="${escHtml(entry.item)}"
-                           data-index="${i}"
-                           data-max="${ing.qty}"
-                           oninput="setIngredientCount(this.dataset.item,+this.dataset.index,+this.dataset.max,+this.value);
-                                    const r=this.closest('tr'),ins=r.querySelectorAll('input.counter-input');
-                                    let t=0,n=0; ins.forEach(x=>{t+=+x.value;n+=+x.dataset.max;});
-                                    r.style.opacity=t>=n?'0.5':'1';">`
-            ).join('</div>') + '</div>';
+            // Comma-separated item list; each item gets a data-qty attribute for green highlighting
+            const itemsHtml = g.sources.map(({ entry, ing }, idx) => {
+                const met   = gathered >= ing.qty;
+                const comma = idx < g.sources.length - 1 ? '<span class="loc-item-sep">, </span>' : '';
+                return `<span class="loc-item-label${met ? ' loc-item-met' : ''}" data-item-qty="${ing.qty}">${escHtml(entry.item)} (${ing.qty}x)</span>${comma}`;
+            }).join('');
 
             tr.innerHTML = `
                 <td class="loc-needed">${g.totalQty}x</td>
+                <td>
+                    <input type="number" class="counter-input"
+                           min="0" value="${gathered}"
+                           data-ing="${escHtml(ingName)}"
+                           data-total="${g.totalQty}"
+                           oninput="
+                               const v=Math.max(0,+this.value);
+                               appState.locGathered[this.dataset.ing]=v;
+                               saveLocGathered();
+                               const tr=this.closest('tr');
+                               tr.style.opacity=v>=+this.dataset.total?'0.5':'1';
+                               tr.querySelectorAll('.loc-item-label').forEach(s=>{
+                                   s.classList.toggle('loc-item-met',v>=+s.dataset.itemQty);
+                               });">
+                </td>
                 <td class="loc-ingredient ${g.colorClass}">${escHtml(ingName)}</td>
                 <td class="loc-items-cell">${itemsHtml}</td>`;
             tbody.appendChild(tr);
