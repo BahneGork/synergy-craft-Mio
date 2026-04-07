@@ -90,6 +90,14 @@
         align-items: stretch;
     }
 
+    .location-wrapper {
+        grid-column: 1 / -1;
+    }
+
+    .location-wrapper select {
+        width: 100%;
+    }
+
     @media (max-width: 800px) {
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
@@ -675,6 +683,11 @@
                         <option value="Wizard">Wizard</option>
                     </select>
                 </div>
+                <div class="location-wrapper">
+                    <select id="locationFilter" onchange="filterData()">
+                        <option value="">All Locations</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div id="itemsGrid" class="items-grid"></div>
@@ -1068,11 +1081,15 @@
             ).join('');
 
             const prog = appState.progress[entry.item] || [];
-            const doneCount = entry.ingredients.filter((ing, i) => (prog[i] || 0) >= ing.qty).length;
+            const doneCount = entry.ingredients.filter(ing => {
+                const idx = ing.originalIndex ?? entry.ingredients.indexOf(ing);
+                return (prog[idx] || 0) >= ing.qty;
+            }).length;
             const total = entry.ingredients.length;
 
             const ingredientHtml = entry.ingredients.map((ing, i) => {
-                const collected = prog[i] || 0;
+                const idx = ing.originalIndex ?? i;
+                const collected = prog[idx] || 0;
                 const isDone = collected >= ing.qty;
                 return `
                     <div class="ingredient-row${isDone ? ' done' : ''}">
@@ -1084,7 +1101,7 @@
                                        min="0" max="${ing.qty}"
                                        value="${collected}"
                                        data-item="${escHtml(entry.item)}"
-                                       data-index="${i}"
+                                       data-index="${idx}"
                                        data-max="${ing.qty}"
                                        oninput="setIngredientCount(this.dataset.item, +this.dataset.index, +this.dataset.max, +this.value)">
                                 <span class="counter-sep">/</span>
@@ -1126,13 +1143,22 @@
     function filterData() {
         const searchVal = document.getElementById('searchInput').value.toLowerCase();
         const classVal = document.getElementById('classFilter').value;
+        const locationVal = document.getElementById('locationFilter').value;
 
-        const filtered = parsedCraftingData.filter(d => {
-            const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
-                                 d.classes.some(cls => cls.toLowerCase().includes(searchVal));
-            const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
-            return matchesSearch && matchesClass;
-        });
+        const filtered = parsedCraftingData
+            .filter(d => {
+                const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
+                                     d.classes.some(cls => cls.toLowerCase().includes(searchVal));
+                const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
+                return matchesSearch && matchesClass;
+            })
+            .map(entry => {
+                const ingredients = entry.ingredients.map((ing, i) => ({ ...ing, originalIndex: i }));
+                if (!locationVal) return { ...entry, ingredients };
+                const visible = ingredients.filter(ing => ing.location === locationVal);
+                return visible.length ? { ...entry, ingredients: visible } : null;
+            })
+            .filter(Boolean);
         filtered.sort((a, b) => {
             const aSelected = appState.selectedItems.has(a.item) ? 0 : 1;
             const bSelected = appState.selectedItems.has(b.item) ? 0 : 1;
@@ -1366,6 +1392,18 @@
     }
 
     // --- INITIAL LOAD ---
+    // Populate location dropdown from data
+    const allLocations = [...new Set(
+        parsedCraftingData.flatMap(e => e.ingredients.map(i => i.location))
+    )].sort();
+    const locSelect = document.getElementById('locationFilter');
+    allLocations.forEach(loc => {
+        const opt = document.createElement('option');
+        opt.value = loc;
+        opt.textContent = loc;
+        locSelect.appendChild(opt);
+    });
+
     loadState();
     filterData();
     updatePanel();
