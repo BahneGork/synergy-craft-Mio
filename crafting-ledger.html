@@ -101,6 +101,7 @@
             border-right: none !important;
             border-bottom: 3px solid var(--gold);
         }
+        .lookup-panel { display: none; }
     }
 
     input, select {
@@ -332,38 +333,79 @@
         text-decoration: underline dotted;
     }
 
-    /* Active ingredient filter banner */
-    .ingredient-filter-banner {
-        display: none;
-        align-items: center;
-        gap: 10px;
-        background: var(--crimson);
-        color: #fff;
-        padding: 8px 15px;
+    /* --- INGREDIENT LOOKUP PANEL (permanent right sidebar) --- */
+    .lookup-panel {
+        width: 220px;
+        flex-shrink: 0;
+        border-left: 3px solid var(--gold);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .lookup-header {
+        padding: 20px 15px 15px;
+        border-bottom: 2px solid var(--gold);
+        background-color: var(--parchment);
+        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        flex-shrink: 0;
+    }
+
+    .lookup-title {
+        font-family: 'MedievalSharp', cursive;
+        color: var(--crimson);
+        font-size: 1.1rem;
+        margin: 0 0 4px 0;
+    }
+
+    .lookup-material {
+        font-size: 0.78rem;
+        color: #888;
+        font-style: italic;
+        word-break: break-word;
+    }
+
+    .lookup-content {
+        flex: 1;
+        padding: 12px 15px;
+        overflow-y: auto;
+    }
+
+    .lookup-empty {
+        text-align: center;
+        font-style: italic;
+        color: #aaa;
+        margin-top: 40px;
         font-size: 0.85rem;
-        font-family: 'Lora', serif;
-        margin-bottom: 20px;
-        border-radius: 4px;
+        line-height: 1.6;
     }
 
-    .ingredient-filter-banner.active { display: flex; }
+    .lookup-item-row {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(176, 141, 68, 0.2);
+        font-size: 0.88rem;
+        color: var(--ink);
+        font-weight: 700;
+        line-height: 1.3;
+    }
 
-    .ingredient-filter-banner strong { font-style: italic; }
-
-    .clear-filter-btn {
-        margin-left: auto;
-        background: rgba(255,255,255,0.2);
-        border: 1px solid rgba(255,255,255,0.5);
-        color: #fff;
-        padding: 3px 10px;
-        font-family: 'Lora', serif;
-        font-size: 0.8rem;
-        cursor: pointer;
+    .lookup-item-qty {
+        display: inline-block;
+        background: #eee;
+        color: var(--crimson);
+        font-weight: bold;
+        padding: 1px 5px;
         border-radius: 3px;
-        white-space: nowrap;
+        font-size: 0.8rem;
+        margin-right: 5px;
     }
 
-    .clear-filter-btn:hover { background: rgba(255,255,255,0.35); }
+    @media (max-width: 800px) {
+        .lookup-panel { display: none; }
+    }
 
     /* Done ingredient state (collected >= needed) */
     .ingredient-row.done .name {
@@ -585,11 +627,18 @@
                 </div>
             </div>
         </div>
-        <div id="ingredientFilterBanner" class="ingredient-filter-banner">
-            Showing items requiring: <strong id="ingredientFilterLabel"></strong>
-            <button class="clear-filter-btn" onclick="clearIngredientFilter()">&#x2715; Clear</button>
-        </div>
         <div id="itemsGrid" class="items-grid"></div>
+    </div>
+
+    <!-- Right: ingredient lookup panel -->
+    <div class="lookup-panel">
+        <div class="lookup-header">
+            <h2 class="lookup-title">Used In</h2>
+            <div class="lookup-material" id="lookupMaterial">Click any ingredient name</div>
+        </div>
+        <div class="lookup-content" id="lookupContent">
+            <p class="lookup-empty">Click an ingredient name on any card to see which items require it.</p>
+        </div>
     </div>
 
 </div>
@@ -906,8 +955,7 @@
     // --- STATE LAYER ---
     const appState = {
         selectedItems: new Set(),
-        progress: {},
-        ingredientFilter: null
+        progress: {}
     };
 
     // localStorage helpers with fallback for browsers that block it on file://
@@ -966,7 +1014,7 @@
                     <div class="ingredient-row${isDone ? ' done' : ''}">
                         <div class="qty-name-group">
                             <span class="qty">${ing.qty}x</span>
-                            <button class="name-btn" data-ingredient="${escHtml(ing.name)}" onclick="filterByIngredient(this.dataset.ingredient)">${escHtml(ing.name)}</button>
+                            <button class="name-btn" data-ingredient="${escHtml(ing.name)}" onclick="showIngredientUses(this.dataset.ingredient)">${escHtml(ing.name)}</button>
                             <div class="counter-group">
                                 <input type="number" class="counter-input"
                                        min="0" max="${ing.qty}"
@@ -1019,9 +1067,7 @@
             const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
                                  d.classes.some(cls => cls.toLowerCase().includes(searchVal));
             const matchesClass = (classVal === 'All' || d.classes.includes(classVal));
-            const matchesIngredient = !appState.ingredientFilter ||
-                                      d.ingredients.some(ing => ing.name === appState.ingredientFilter);
-            return matchesSearch && matchesClass && matchesIngredient;
+            return matchesSearch && matchesClass;
         });
         filtered.sort((a, b) => {
             const aSelected = appState.selectedItems.has(a.item) ? 0 : 1;
@@ -1031,22 +1077,26 @@
         renderTable(filtered);
     }
 
-    function filterByIngredient(name) {
-        // Toggle off if clicking the same ingredient again
-        if (appState.ingredientFilter === name) {
-            clearIngredientFilter();
+    function showIngredientUses(name) {
+        document.getElementById('lookupMaterial').textContent = name;
+
+        const matches = parsedCraftingData
+            .map(entry => {
+                const ing = entry.ingredients.find(i => i.name === name);
+                return ing ? { item: entry.item, qty: ing.qty } : null;
+            })
+            .filter(Boolean);
+
+        const content = document.getElementById('lookupContent');
+        if (matches.length === 0) {
+            content.innerHTML = '<p class="lookup-empty">No items found.</p>';
             return;
         }
-        appState.ingredientFilter = name;
-        document.getElementById('ingredientFilterLabel').textContent = name;
-        document.getElementById('ingredientFilterBanner').classList.add('active');
-        filterData();
-    }
 
-    function clearIngredientFilter() {
-        appState.ingredientFilter = null;
-        document.getElementById('ingredientFilterBanner').classList.remove('active');
-        filterData();
+        content.innerHTML = matches.map(m => `
+            <div class="lookup-item-row">
+                <span class="lookup-item-qty">${m.qty}x</span>${escHtml(m.item)}
+            </div>`).join('');
     }
 
     // --- PROGRESS TRACKER ---
