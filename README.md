@@ -1,35 +1,45 @@
-# 📜 Masterwork Crafting Ledger
+# Masterwork Crafting Ledger
 
-An immersive, interactive web tool designed for **Neverwinter** players to track and manage high-end Masterwork crafting requirements. This application transforms dense material spreadsheets into a mobile-friendly, searchable interface with a "Parchment & Ink" aesthetic.
+An interactive web tool for **Neverwinter** players to plan and track high-end Masterwork crafting. Built by the **Synergy Guild**.
 
-## ✨ Overview
+> Data compiled by **Ivydora** & **Asura**. Join us on [Discord](https://discord.gg/ZAEfYwdjc8).
 
-The **Masterwork Crafting Ledger** provides a centralized database of elite crafting recipes for all character classes. From **Shroomwood** accessories to **Duergar Mercenary** steel weaponry, this tool helps crafters identify exactly which exotic materials are needed and their specific drop locations.
+---
 
-### Key Features
-* **Class-Specific Filtering:** Instantly narrow down items for Barbarians, Bards, Clerics, Fighters, Paladins, Rangers, Rogues, Warlocks, or Wizards.
-* **Location Tracking:** Every ingredient includes a specific source, such as **Explorer Charts**, **Abyssal Hunt Mods**, or **Master Demonweb Pits**.
-* **Real-Time Search:** Dynamic filtering by item name or class as you type.
-* **Immersive UI:** A thematic design featuring gold-bordered parchment, medieval typography, and class-coded badges.
+## Features
 
-## 🛠️ Technical Breakdown
+- **Browse recipes by class** — filter by Barbarian, Bard, Cleric, Fighter, Paladin, Ranger, Rogue, Warlock, or Wizard
+- **Real-time search** — filter by item name or class as you type
+- **Shopping list** — add items to a persistent left-side panel that aggregates all required ingredients across your selection
+- **Progress tracking** — enter how many of each ingredient you've gathered; completed rows turn green and cross out automatically
+- **Location View** — switch to a flat table filtered by farming location to see exactly what to pick up during a run
+- **Ingredient lookup** — click any ingredient name to see every item that needs it, listed in the right panel
+- **Colour-coded ingredients** — orange for rare drops, purple for farmable materials, blue for Stronghold resources
+- **Export** — download your shopping list as TXT (Discord-friendly), Markdown, or CSV
+- **Auto-save** — all progress and selections are saved in your browser automatically
 
-* **Architecture:** Single-page application (SPA) built with Vanilla JavaScript for zero-latency filtering.
-* **Styling:** Custom CSS3 utilizing a "Parchment" texture overlay and a responsive CSS Grid layout.
-* **Typography:** Google Fonts integration of `MedievalSharp` for headers and `Lora` for ledger text.
-* **Data Structure:** A consolidated array managing shared gear sets and unique class weapons.
+---
 
-## 👥 Credits & Community
+## Quick Start
 
-This project is a collaborative effort by the **Synergy Guild** on Neverwinter.
+1. Download `crafting-ledger.html`
+2. Open it in any modern browser (Chrome, Firefox, Edge)
+3. No installation, no server, no account required
 
-* **Development:** Created by the **Synergy** Guild.
-* **Data Compilation:** Research and material verification by **Ivydora** & **Asura**.
-* **Join Us:** Connect with the guild and get the latest updates via [Discord](https://discord.gg/ZAEfYwdjc8).
+See `docs/USER-GUIDE.md` for full usage instructions.
 
-## 🚀 Quick Start
+---
 
-1.  Open the `crafting-ledger.html` file in any modern web browser.
-2.  Use the **Search** bar to find specific gear (e.g., "Scintillant Amulet").
-3.  Use the **Class Filter** to see only the gear your character can equip.
-4.  Reference the **Source** section of each ingredient to plan your farming routes.
+## Development
+
+The entire application is a single HTML file — no build step, no package manager.
+
+See `docs/DEVELOPER.md` for architecture details, data format, and how to add new recipes.
+
+---
+
+## Credits
+
+- **Guild:** Synergy (Neverwinter)
+- **Data:** Ivydora & Asura
+- **Original repo:** [jsynon/synergy-craft](https://github.com/jsynon/synergy-craft)
