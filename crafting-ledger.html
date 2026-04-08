@@ -1520,7 +1520,7 @@
 
         // Show "this class only" checkbox only when a specific class is selected
         const label = document.getElementById('exclusiveLabel');
-        if (label) label.style.display = classVal !== 'All' ? 'flex' : 'none';
+        if (label) label.style.display = classVal !== 'All' && appState.view !== 'location' ? 'flex' : 'none';
 
         if (appState.view === 'location') {
             renderLocationTable();
@@ -1731,7 +1731,7 @@
         btn.textContent = inLocation ? '⊠ Item cards' : '⊞ Gathering ledger by location';
         btn.classList.toggle('active', inLocation);
 
-        if (inLocation) renderLocationTable();
+        if (inLocation) filterData(); // hides exclusive label and delegates to renderLocationTable
     }
 
     /** Builds the location table grouped by ingredient. One row per ingredient with a single gathered counter; the items column lists every crafting item that needs it (comma-separated with qty). Item names turn green when the gathered total meets their individual need. */
