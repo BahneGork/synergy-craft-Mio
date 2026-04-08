@@ -1891,7 +1891,15 @@
         const agg = buildShoppingList();
         const date = new Date().toISOString().slice(0, 10);
         const items = appState.selectedItems.size;
-        const rows = Object.entries(agg).sort((a, b) => a[0].localeCompare(b[0])).map(([name, d]) => ({
+        const rows = Object.entries(agg).sort(([aName, aData], [bName, bData]) => {
+            const aDone = aData.collected >= aData.qty ? 1 : 0;
+            const bDone = bData.collected >= bData.qty ? 1 : 0;
+            if (aDone !== bDone) return aDone - bDone;
+            const aLoc = [...aData.locations].sort().join('|');
+            const bLoc = [...bData.locations].sort().join('|');
+            if (aLoc !== bLoc) return aLoc.localeCompare(bLoc);
+            return aName.localeCompare(bName);
+        }).map(([name, d]) => ({
             name,
             needed: d.qty,
             collected: d.collected,
