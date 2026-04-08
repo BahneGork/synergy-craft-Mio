@@ -768,6 +768,13 @@
         color: var(--ink);
     }
 
+    .shop-remaining {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--crimson);
+        margin-bottom: 1px;
+    }
+
     .shop-collected {
         font-size: 0.78rem;
         color: var(--gold);
@@ -1635,6 +1642,10 @@
         const rows = sorted.map(([name, data]) => {
             const locationsHtml = [...data.locations].map(l => `<strong>${escHtml(l)}</strong>`).join(', ');
             const isDone = data.collected >= data.qty;
+            const remaining = data.qty - data.collected;
+            const remainingHtml = !isDone
+                ? `<div class="shop-remaining">${remaining}x still needed</div>`
+                : '';
             const collectedHtml = data.collected > 0
                 ? `<div class="shop-collected" style="${isDone ? 'color:#388e3c;font-weight:700;' : ''}">${data.collected} / ${data.qty} collected${isDone ? ' ✓' : ''}</div>`
                 : '';
@@ -1644,6 +1655,7 @@
                         <span class="shop-qty" style="${isDone ? 'background:#c8e6c9;color:#388e3c;' : ''}">${data.qty}x</span>
                         <span class="shop-name" style="${isDone ? 'text-decoration:line-through;color:#aaa;' : ''}">${escHtml(name)}</span>
                     </div>
+                    ${remainingHtml}
                     ${collectedHtml}
                     <div class="shop-location">Source: ${locationsHtml}</div>
                 </div>`;
