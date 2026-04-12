@@ -1297,15 +1297,7 @@
             `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
         try {
             const responses = await Promise.all(SHEET_TABS.map(tab => fetch(url(tab))));
-
-            // If any tab returned a non-OK response (e.g. redirect to Google login), abort and keep hardcoded data
-            if (responses.some(r => !r.ok)) {
-                console.info('Sheet unavailable (non-OK response), using built-in data.');
-                setDataSourceBadge(false);
-                return;
-            }
-
-            const texts = await Promise.all(responses.map(r => r.text()));
+            const texts     = await Promise.all(responses.map(r => r.text()));
 
             const merged = new Map(); // itemName → { classes: Set, ingredients: [] }
             SHEET_TABS.forEach((tab, idx) => {
@@ -1323,13 +1315,6 @@
                 classes: [...d.classes].sort(),
                 ingredients: d.ingredients
             }));
-
-            // Guard: if the sheet returned no items at all, keep hardcoded data
-            if (liveData.length === 0) {
-                console.info('Sheet returned no items, using built-in data.');
-                setDataSourceBadge(false);
-                return;
-            }
 
             parsedCraftingData = buildParsedData(liveData);
             setDataSourceBadge(true);
