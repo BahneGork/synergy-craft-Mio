@@ -90,8 +90,14 @@
         align-items: stretch;
     }
 
-    .view-toggle-btn {
+    .view-btn-row {
         grid-column: 1 / -1;
+        display: flex;
+        gap: 8px;
+    }
+
+    .view-toggle-btn {
+        flex: 1;
         padding: 10px;
         border: 2px solid var(--gold);
         background: transparent;
@@ -866,7 +872,10 @@
                         <input type="checkbox" id="exclusiveFilter" onchange="filterData()"> this class only
                     </label>
                 </div>
-                <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Gathering ledger by location</button>
+                <div class="view-btn-row">
+                    <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Gathering ledger by location</button>
+                    <button class="view-toggle-btn" id="inventoryToggleBtn" onclick="toggleInventoryView()">&#9776; All Resources</button>
+                </div>
             </div>
         </div>
 
@@ -897,6 +906,20 @@
                 <tbody id="locationTableBody"></tbody>
             </table>
             <p id="locationTableEmpty" class="loc-empty"></p>
+        </div>
+
+        <!-- All Resources inventory table (hidden by default) -->
+        <div id="inventoryTableWrap" style="display:none;">
+            <table class="loc-table">
+                <thead>
+                    <tr>
+                        <th>Gathered</th>
+                        <th>Ingredient</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -1536,10 +1559,15 @@
 
         // Show "this class only" checkbox only when a specific class is selected
         const label = document.getElementById('exclusiveLabel');
-        if (label) label.style.display = classVal !== 'All' && appState.view !== 'location' ? 'flex' : 'none';
+        if (label) label.style.display = classVal !== 'All' && appState.view === 'cards' ? 'flex' : 'none';
 
         if (appState.view === 'location') {
             renderLocationTable();
+            return;
+        }
+
+        if (appState.view === 'inventory') {
+            renderInventoryTable();
             return;
         }
 
@@ -1746,20 +1774,82 @@
     // --- LOCATION VIEW ---
     /** Switches between Card View and Location View. Shows/hides the card grid and location table accordingly. */
     function toggleView() {
+        // If inventory is active, close it first before toggling location
+        if (appState.view === 'inventory') toggleInventoryView();
+
         appState.view = appState.view === 'cards' ? 'location' : 'cards';
         const inLocation = appState.view === 'location';
 
-        document.getElementById('itemsGrid').style.display        = inLocation ? 'none' : '';
-        document.getElementById('locationTableWrap').style.display = inLocation ? 'block' : 'none';
+        document.getElementById('itemsGrid').style.display          = inLocation ? 'none' : '';
+        document.getElementById('locationTableWrap').style.display  = inLocation ? 'block' : 'none';
+        document.getElementById('inventoryTableWrap').style.display = 'none';
         document.getElementById('locationFilterWrap').style.display = inLocation ? 'block' : 'none';
-        document.getElementById('lookupSection').style.display    = inLocation ? 'none' : '';
-        document.getElementById('locItemSection').style.display   = inLocation ? 'flex' : 'none';
+        document.getElementById('lookupSection').style.display      = inLocation ? 'none' : '';
+        document.getElementById('locItemSection').style.display     = inLocation ? 'flex' : 'none';
 
         const btn = document.getElementById('viewToggleBtn');
         btn.textContent = inLocation ? '⊠ Item cards' : '⊞ Gathering ledger by location';
         btn.classList.toggle('active', inLocation);
 
         if (inLocation) filterData(); // hides exclusive label and delegates to renderLocationTable
+    }
+
+    function toggleInventoryView() {
+        if (appState.view === 'inventory') {
+            // Return to card view
+            appState.view = 'cards';
+            document.getElementById('itemsGrid').style.display          = '';
+            document.getElementById('inventoryTableWrap').style.display = 'none';
+            document.getElementById('locationTableWrap').style.display  = 'none';
+            document.getElementById('locationFilterWrap').style.display = 'none';
+            document.getElementById('lookupSection').style.display      = '';
+            document.getElementById('locItemSection').style.display     = 'none';
+            document.getElementById('inventoryToggleBtn').classList.remove('active');
+            document.getElementById('inventoryToggleBtn').textContent = '⊞ All Resources';
+            filterData();
+        } else {
+            // Enter inventory view (close location view if active)
+            appState.view = 'inventory';
+            document.getElementById('itemsGrid').style.display          = 'none';
+            document.getElementById('locationTableWrap').style.display  = 'none';
+            document.getElementById('locationFilterWrap').style.display = 'none';
+            document.getElementById('inventoryTableWrap').style.display = 'block';
+            document.getElementById('lookupSection').style.display      = 'none';
+            document.getElementById('locItemSection').style.display     = 'none';
+            document.getElementById('viewToggleBtn').classList.remove('active');
+            document.getElementById('viewToggleBtn').textContent = '⊞ Gathering ledger by location';
+            document.getElementById('inventoryToggleBtn').classList.add('active');
+            document.getElementById('inventoryToggleBtn').textContent = '⊠ Item cards';
+            renderInventoryTable();
+        }
+    }
+
+    function renderInventoryTable() {
+        const ingMap = new Map(); // name → { locations: Set, colorClass }
+        parsedCraftingData.forEach(entry => {
+            entry.ingredients.forEach(ing => {
+                if (!ingMap.has(ing.name)) {
+                    ingMap.set(ing.name, { locations: new Set(), colorClass: getColorClass(ing.name) });
+                }
+                ingMap.get(ing.name).locations.add(ing.location);
+            });
+        });
+
+        const sorted = [...ingMap.entries()].sort(([a], [b]) => a.localeCompare(b));
+        const tbody = document.getElementById('inventoryTableBody');
+
+        tbody.innerHTML = sorted.map(([name, data]) => {
+            const gathered = appState.locGathered[name] ?? 0;
+            const source = [...data.locations].sort().join(' / ');
+            return `<tr>
+                <td><input type="number" class="counter-input" min="0"
+                           value="${gathered}"
+                           data-ing="${escHtml(name)}"
+                           oninput="setLocGathered(this.dataset.ing, +this.value)"></td>
+                <td class="loc-ingredient ${data.colorClass}">${escHtml(name)}</td>
+                <td class="location-text">${escHtml(source)}</td>
+            </tr>`;
+        }).join('');
     }
 
     /** Builds the location table grouped by ingredient. One row per ingredient with a single gathered counter; the items column lists every crafting item that needs it (comma-separated with qty). Item names turn green when the gathered total meets their individual need. */
