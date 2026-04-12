@@ -621,6 +621,14 @@
         font-style: italic;
     }
 
+    .panel-item-names {
+        font-size: 0.75rem;
+        color: var(--ink);
+        margin-top: 6px;
+        line-height: 1.5;
+        opacity: 0.7;
+    }
+
     .panel-content {
         flex: 1;
         padding: 12px 15px;
@@ -803,6 +811,7 @@
         <div class="panel-header">
             <h2 class="panel-title">Shopping List</h2>
             <div class="panel-subtitle" id="listCount">0 items selected</div>
+            <div id="listItems" class="panel-item-names"></div>
         </div>
         <div id="shoppingContent" class="panel-content" aria-live="polite"></div>
         <div class="panel-footer">
@@ -1622,6 +1631,13 @@
         const content = document.getElementById('shoppingContent');
         const n = appState.selectedItems.size;
         document.getElementById('listCount').textContent = n === 0 ? 'No items selected' : `${n} item${n === 1 ? '' : 's'} selected`;
+
+        const listItemsEl = document.getElementById('listItems');
+        if (n === 0) {
+            listItemsEl.textContent = '';
+        } else {
+            listItemsEl.textContent = [...appState.selectedItems].join(' - ');
+        }
 
         if (appState.selectedItems.size === 0) {
             content.innerHTML = '<p class="panel-empty">No items added yet.<br>Click <strong>+ Add to List</strong> on any item card to begin.</p>';
