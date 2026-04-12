@@ -1366,13 +1366,19 @@
             : { qty: 0, name: resource };
     }
 
+    /** Normalises apostrophe variants (curly, prime, etc.) to a plain straight apostrophe so that
+     *  ingredient names from the hardcoded data, the live Google Sheet, and backup files all match. */
+    function normKey(s) {
+        return s.replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
+    }
+
     function buildParsedData(data) {
         return data.map(entry => ({
             ...entry,
-            ingredients: entry.ingredients.map(ing => ({
-                location: ing.location,
-                ...parseIngredient(ing.resource)
-            }))
+            ingredients: entry.ingredients.map(ing => {
+                const parsed = parseIngredient(ing.resource);
+                return { location: ing.location, ...parsed, name: normKey(parsed.name) };
+            })
         }));
     }
 
@@ -1402,6 +1408,12 @@
         storage = { _data: {}, getItem(k) { return this._data[k] ?? null; }, setItem(k, v) { this._data[k] = v; }, removeItem(k) { delete this._data[k]; } };
     }
 
+    function normalizeLocGathered(raw) {
+        const out = {};
+        Object.entries(raw).forEach(([k, v]) => { out[normKey(k)] = v; });
+        return out;
+    }
+
     function loadState() {
         try {
             const prog = storage.getItem('synergy-crafting-progress');
@@ -1409,7 +1421,7 @@
             const shop = storage.getItem('synergy-crafting-shopping');
             if (shop) appState.selectedItems = new Set(JSON.parse(shop));
             const locG = storage.getItem('synergy-crafting-loc-gathered');
-            if (locG) appState.locGathered = JSON.parse(locG);
+            if (locG) appState.locGathered = normalizeLocGathered(JSON.parse(locG));
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
@@ -1446,6 +1458,7 @@
 
     /** Sets the location-view gathered counter for one ingredient. Stores raw value in locGathered, writes capped values to per-item progress, and syncs the card view DOM. */
     function setLocGathered(ingName, rawValue) {
+        ingName = normKey(ingName);
         const v = Math.max(0, isNaN(rawValue) ? 0 : rawValue);
 
         // Store raw entered value — used by buildShoppingList and renderLocationTable
@@ -2098,13 +2111,14 @@
                     saveSelected();
                 }
                 if (backup.locGathered && typeof backup.locGathered === 'object') {
-                    appState.locGathered = backup.locGathered;
+                    appState.locGathered = normalizeLocGathered(backup.locGathered);
                     saveProgress();
                 }
 
                 filterData();
                 updatePanel();
                 if (appState.view === 'location') renderLocationTable();
+                if (appState.view === 'inventory') renderInventoryTable();
 
                 alert(`Backup restored (${new Date(backup.exported).toLocaleString()})`);
             } catch (err) {
