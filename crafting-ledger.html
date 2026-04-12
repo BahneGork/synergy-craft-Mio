@@ -607,12 +607,83 @@
     }
 
     .panel-header {
+        position: relative;
         padding: 20px 15px 15px;
         border-bottom: 2px solid var(--gold);
         background-color: var(--parchment);
         background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
         flex-shrink: 0;
     }
+
+    .panel-mode-btn {
+        position: absolute;
+        top: 18px;
+        right: 15px;
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        font-size: 0.72rem;
+        font-family: 'Lora', serif;
+        font-weight: 700;
+        padding: 3px 8px;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: background 0.2s, color 0.2s;
+    }
+    .panel-mode-btn:hover,
+    .panel-mode-btn.active { background: var(--gold); color: #fff; }
+
+    .craft-order-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 0;
+        border-bottom: 1px solid rgba(176,141,68,0.15);
+        font-size: 0.82rem;
+    }
+    .craft-order-name { flex: 1; font-weight: 700; color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .craft-remove-btn { background: none; border: none; color: #bbb; font-size: 0.9rem; cursor: pointer; padding: 0 2px; flex-shrink: 0; }
+    .craft-remove-btn:hover { color: var(--crimson); }
+    .craft-qty-input { width: 44px; padding: 2px 4px; border: 1px solid var(--gold); background: rgba(255,255,255,0.7); font-family: 'Lora', serif; font-size: 0.85rem; font-weight: 700; color: var(--ink); text-align: center; border-radius: 3px; box-sizing: border-box; -moz-appearance: textfield; }
+    .craft-qty-input::-webkit-outer-spin-button, .craft-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .craft-qty-input:focus { outline: none; border-color: var(--crimson); }
+
+    .craft-feasibility-row {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 3px;
+        margin-bottom: 2px;
+        font-size: 0.82rem;
+    }
+    .craft-feasibility-row.ok  { background: rgba(76,175,80,0.08); }
+    .craft-feasibility-row.short { background: rgba(183,28,28,0.07); }
+    .craft-feas-icon { font-size: 0.75rem; flex-shrink: 0; width: 14px; }
+    .craft-feas-name { flex: 1; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .craft-feas-detail { font-size: 0.75rem; color: #666; white-space: nowrap; flex-shrink: 0; }
+    .craft-feas-detail.short-text { color: var(--crimson); font-weight: 700; }
+    .craft-feas-detail.ok-text { color: #388e3c; }
+
+    .craft-section-header {
+        font-size: 0.7rem;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 12px 0 5px;
+        border-bottom: 1px solid rgba(176,141,68,0.3);
+        padding-bottom: 3px;
+    }
+    .craft-summary {
+        margin-top: 10px;
+        padding: 8px;
+        border-radius: 3px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-align: center;
+    }
+    .craft-summary.ok   { background: rgba(76,175,80,0.12); color: #2e7d32; }
+    .craft-summary.short { background: rgba(183,28,28,0.08); color: var(--crimson); }
 
     .panel-title {
         font-family: 'MedievalSharp', cursive;
@@ -815,6 +886,7 @@
     <!-- Left: permanent shopping list sidebar -->
     <div id="shoppingPanel" class="shopping-panel" aria-label="Shopping List">
         <div class="panel-header">
+            <button id="panelModeBtn" class="panel-mode-btn" onclick="togglePanelMode()">&#9874; Craft</button>
             <h2 class="panel-title">Shopping List</h2>
             <div class="panel-subtitle" id="listCount">0 items selected</div>
             <div id="listItems" class="panel-item-names"></div>
@@ -1395,7 +1467,9 @@
         locGathered: {},         // raw gathered value per ingredient name (location view)
         abyssalMods: new Set(),  // which Abyssal Hunt mods are checked
         locExcluded: new Set(),  // item names excluded from location view totals
-        view: 'cards'
+        view: 'cards',
+        craftQty: {},            // itemName → desired craft quantity (craft planner)
+        panelMode: 'shop'        // 'shop' | 'craft'
     };
 
     // localStorage helpers with fallback for browsers that block it on file://
@@ -1422,16 +1496,23 @@
             if (shop) appState.selectedItems = new Set(JSON.parse(shop));
             const locG = storage.getItem('synergy-crafting-loc-gathered');
             if (locG) appState.locGathered = normalizeLocGathered(JSON.parse(locG));
+            const cq = storage.getItem('synergy-crafting-craft-qty');
+            if (cq) appState.craftQty = JSON.parse(cq);
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
             appState.locGathered = {};
+            appState.craftQty = {};
         }
     }
 
     function saveProgress() {
         storage.setItem('synergy-crafting-progress', JSON.stringify(appState.progress));
         storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
+    }
+
+    function saveCraftQty() {
+        storage.setItem('synergy-crafting-craft-qty', JSON.stringify(appState.craftQty));
     }
 
     function saveSelected() {
@@ -1668,9 +1749,105 @@
     }
 
     /** Renders the shopping list sidebar from buildShoppingList() output. Updates item count subtitle. */
+    // --- CRAFT PLANNER ---
+
+    function togglePanelMode() {
+        appState.panelMode = appState.panelMode === 'shop' ? 'craft' : 'shop';
+        const btn = document.getElementById('panelModeBtn');
+        if (appState.panelMode === 'craft') {
+            btn.textContent = '\uD83D\uDCE6 Shop';
+            btn.classList.add('active');
+        } else {
+            btn.textContent = '\u2692 Craft';
+            btn.classList.remove('active');
+        }
+        updatePanel();
+    }
+
+    function buildCraftList() {
+        const agg = {}; // ingName → { needed, have }
+        for (const itemName of appState.selectedItems) {
+            const entry = parsedCraftingData.find(e => e.item === itemName);
+            if (!entry) continue;
+            const qty = Math.max(1, appState.craftQty[itemName] ?? 1);
+            entry.ingredients.forEach(ing => {
+                if (!agg[ing.name]) agg[ing.name] = { needed: 0, have: appState.locGathered[ing.name] || 0 };
+                agg[ing.name].needed += ing.qty * qty;
+            });
+        }
+        Object.values(agg).forEach(r => { r.diff = r.have - r.needed; });
+        return agg;
+    }
+
+    function setCraftQty(itemName, qty) {
+        qty = Math.max(1, isNaN(qty) ? 1 : Math.floor(qty));
+        appState.craftQty[itemName] = qty;
+        saveCraftQty();
+        renderCraftPanel();
+    }
+
+    function renderCraftPanel() {
+        const content = document.getElementById('shoppingContent');
+        const items = [...appState.selectedItems];
+
+        if (items.length === 0) {
+            content.innerHTML = '<p class="panel-empty">No items added yet.<br>Click <strong>+ Add to List</strong> on any card to begin.</p>';
+            return;
+        }
+
+        // Section A: craft order rows
+        const orderRows = items.map(name => {
+            const qty = appState.craftQty[name] ?? 1;
+            return `<div class="craft-order-row">
+                <button class="craft-remove-btn" onclick="toggleSelected('${escHtml(name)}')" title="Remove">&#x2715;</button>
+                <span class="craft-order-name" title="${escHtml(name)}">${escHtml(name)}</span>
+                <input type="number" class="craft-qty-input" min="1" value="${qty}"
+                       data-item="${escHtml(name)}"
+                       oninput="setCraftQty(this.dataset.item, +this.value)">
+            </div>`;
+        }).join('');
+
+        // Section B: feasibility
+        const agg = buildCraftList();
+        const sorted = Object.entries(agg).sort(([, a], [, b]) => a.diff - b.diff); // shortfalls first
+        const shortCount = sorted.filter(([, r]) => r.diff < 0).length;
+
+        const feasRows = sorted.map(([name, r]) => {
+            const ok = r.diff >= 0;
+            const detailText = ok
+                ? `have ${r.have} (+${r.diff} spare)`
+                : `have ${r.have} (SHORT ${Math.abs(r.diff)})`;
+            return `<div class="craft-feasibility-row ${ok ? 'ok' : 'short'}">
+                <span class="craft-feas-icon">${ok ? '&#10003;' : '&#10007;'}</span>
+                <span class="craft-feas-name ${getColorClass(name)}" title="${escHtml(name)}">${escHtml(name)}</span>
+                <span class="craft-feas-detail ${ok ? 'ok-text' : 'short-text'}">${detailText}</span>
+            </div>`;
+        }).join('');
+
+        const summaryOk = shortCount === 0;
+        const summaryText = summaryOk
+            ? '&#10003; All ingredients covered'
+            : `&#10007; Short on ${shortCount} ingredient${shortCount !== 1 ? 's' : ''}`;
+
+        content.innerHTML = `
+            <div class="craft-section-header">Craft Order</div>
+            ${orderRows}
+            <div class="craft-section-header" style="margin-top:14px;">Feasibility</div>
+            ${feasRows}
+            <div class="craft-summary ${summaryOk ? 'ok' : 'short'}">${summaryText}</div>`;
+    }
+
     function updatePanel() {
         const content = document.getElementById('shoppingContent');
         const n = appState.selectedItems.size;
+
+        if (appState.panelMode === 'craft') {
+            document.getElementById('listCount').textContent = 'Craft Order';
+            document.getElementById('listItems').textContent = '';
+            renderCraftPanel();
+            return;
+        }
+
         document.getElementById('listCount').textContent = n === 0 ? 'No items selected' : `${n} item${n === 1 ? '' : 's'} selected`;
 
         const listItemsEl = document.getElementById('listItems');
