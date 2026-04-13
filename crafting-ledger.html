@@ -357,20 +357,23 @@
         }
 
         /* Shopping panel collapse */
+        .panel-header {
+            cursor: pointer;
+        }
         .panel-collapse-btn {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             background: transparent;
             border: none;
             color: var(--gold);
             font-family: 'Lora', serif;
-            font-size: 0.78rem;
+            font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
             padding: 0;
-            margin-left: auto;
-            margin-right: 70px; /* clear the Craft button on the right */
+            vertical-align: middle;
+            margin-left: 6px;
         }
         .panel-collapse-btn .chevron {
             display: inline-block;
@@ -1172,10 +1175,7 @@
     <div id="shoppingPanel" class="shopping-panel" aria-label="Shopping List">
         <div class="panel-header">
             <button id="panelModeBtn" class="panel-mode-btn" onclick="togglePanelMode()">&#9874; Craft</button>
-            <h2 class="panel-title">Order List</h2>
-            <button class="panel-collapse-btn" id="panelCollapseBtn" onclick="togglePanelCollapse()" aria-expanded="false">
-                <span id="panelCollapseLabel">Show</span> <i class="chevron">&#9660;</i>
-            </button>
+            <h2 class="panel-title" onclick="togglePanelCollapse()">Order List <button class="panel-collapse-btn" id="panelCollapseBtn" aria-expanded="false" tabindex="-1"><i class="chevron">&#9660;</i></button></h2>
             <div class="panel-subtitle" id="listCount">0 items selected</div>
             <div id="listItems" class="panel-item-names"></div>
         </div>
@@ -2199,11 +2199,9 @@
     function togglePanelCollapse() {
         const wrap = document.getElementById('panelBodyWrap');
         const btn  = document.getElementById('panelCollapseBtn');
-        const lbl  = document.getElementById('panelCollapseLabel');
         const open = wrap.classList.toggle('open');
         btn.classList.toggle('open', open);
         btn.setAttribute('aria-expanded', open);
-        lbl.textContent = open ? 'Hide' : 'Show';
     }
 
     function togglePanelMode() {
