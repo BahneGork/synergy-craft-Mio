@@ -336,12 +336,6 @@
     }
 
     @media (max-width: 800px) {
-        .mode-toggle-btn {
-            position: static;
-            display: block;
-            width: fit-content;
-            margin: 0 auto 12px;
-        }
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
         .ledger-container { flex-direction: column; }
@@ -1210,6 +1204,14 @@
         white-space: nowrap;
     }
     .mode-toggle-btn:hover { background: var(--gold); color: #fff; }
+    @media (max-width: 800px) {
+        .mode-toggle-btn {
+            position: static;
+            display: block;
+            width: fit-content;
+            margin: 0 auto 12px;
+        }
+    }
 
     /* --- SIMPLE MODE OVERRIDES --- */
     body[data-mode="simple"] .flip-btn          { display: none; }
