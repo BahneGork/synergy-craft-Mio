@@ -1736,6 +1736,12 @@
      * Recursively resolves the full production chain for itemName given qtyNeeded.
      * Returns a tree node: { name, qtyNeeded, isRaw, runsNeeded, yieldPerRun, produced, spare, children }
      */
+    /** Collect all raw material names reachable from a chain node. */
+    function collectRawNames(node, out) {
+        if (node.isRaw) { out.add(normKey(node.name)); return; }
+        (node.children || []).forEach(c => collectRawNames(c, out));
+    }
+
     function buildProductionChain(itemName, qtyNeeded, visited = new Set()) {
         const key = normKey(itemName);
         const recipe = intermediateRecipes[key];
@@ -1751,12 +1757,21 @@
         const newVisited = new Set(visited);
         newVisited.add(key);
 
+        let children = recipe.map(ing =>
+            buildProductionChain(ing.name, ing.qty * runsNeeded, newVisited)
+        );
+
+        // Remove raw-material direct children that are already covered as leaves
+        // of an expanded intermediate child — the MW sheet sometimes lists both
+        // the intermediate and its raw sub-components at the same recipe level.
+        const rawFromExpanded = new Set();
+        children.forEach(c => { if (!c.isRaw) collectRawNames(c, rawFromExpanded); });
+        children = children.filter(c => !(c.isRaw && rawFromExpanded.has(normKey(c.name))));
+
         return {
             name: itemName, qtyNeeded, isRaw: false,
             runsNeeded, yieldPerRun, produced, spare,
-            children: recipe.map(ing =>
-                buildProductionChain(ing.name, ing.qty * runsNeeded, newVisited)
-            )
+            children
         };
     }
 
