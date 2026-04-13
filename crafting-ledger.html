@@ -1669,7 +1669,6 @@
     // --- SHEET INTEGRATION ---
     const SHEET_ID        = '1fMSxauujv5uU4bUNkfyviZjOjYyoCB8HNFcN54hDdO0';
     const SHEET_TABS      = ['Bard','Barbarian','Cleric','Fighter','Paladin','Ranger','Rogue','Warlock','Wizard','Rings'];
-    const INTERMEDIATE_TAB = 'Intermediates'; // tab in the same sheet; same column format as class tabs
 
     // Number of items produced per single craft run (everything else = 1)
     const RECIPE_YIELD = {
@@ -1688,50 +1687,41 @@
         "Dreamer's Medical Tea":      3,
     };
 
-    // Populated by loadFromSheet(); maps normalised item name → [{name, qty}]
-    // Source: the "Intermediates" tab in the live Google Sheet (same column format as class tabs).
-    let intermediateRecipes = {};
 
     /**
      * Recursively resolves the full production chain for itemName given qtyNeeded.
      * Returns a tree node: { name, qtyNeeded, isRaw, runsNeeded, yieldPerRun, produced, spare, children }
      */
     /** Collect all raw material names reachable from a chain node. */
-    function collectRawNames(node, out) {
-        if (node.isRaw) { out.add(normKey(node.name)); return; }
-        (node.children || []).forEach(c => collectRawNames(c, out));
-    }
-
     function buildProductionChain(itemName, qtyNeeded, visited = new Set()) {
-        const key = normKey(itemName);
-        const recipe = intermediateRecipes[key];
-        const yieldPerRun = RECIPE_YIELD[key] || 1;
-        const runsNeeded  = Math.ceil(qtyNeeded / yieldPerRun);
-        const produced    = runsNeeded * yieldPerRun;
-        const spare       = produced - qtyNeeded;
+        const key          = normKey(itemName);
+        const yieldPerRun  = RECIPE_YIELD[key] || 1;
+        const runsNeeded   = Math.ceil(qtyNeeded / yieldPerRun);
+        const produced     = runsNeeded * yieldPerRun;
+        const spare        = produced - qtyNeeded;
 
-        if (!recipe || visited.has(key)) {
+        // Look up this item's crafted intermediates from parsedCraftingData
+        const entry     = parsedCraftingData.find(e => normKey(e.item) === key);
+        const materials = entry?.materials;
+        const hasSub    = materials && materials.length > 0 && !visited.has(key);
+
+        if (!hasSub) {
+            // Leaf node: crafted intermediate (in RECIPE_YIELD) or raw material
+            if (key in RECIPE_YIELD) {
+                return { name: itemName, qtyNeeded, isRaw: false, runsNeeded, yieldPerRun, produced, spare, children: [] };
+            }
             return { name: itemName, qtyNeeded, isRaw: true };
         }
 
         const newVisited = new Set(visited);
         newVisited.add(key);
 
-        let children = recipe.map(ing =>
-            buildProductionChain(ing.name, ing.qty * runsNeeded, newVisited)
-        );
-
-        // Remove raw-material direct children that are already covered as leaves
-        // of an expanded intermediate child — the MW sheet sometimes lists both
-        // the intermediate and its raw sub-components at the same recipe level.
-        const rawFromExpanded = new Set();
-        children.forEach(c => { if (!c.isRaw) collectRawNames(c, rawFromExpanded); });
-        children = children.filter(c => !(c.isRaw && rawFromExpanded.has(normKey(c.name))));
-
         return {
             name: itemName, qtyNeeded, isRaw: false,
             runsNeeded, yieldPerRun, produced, spare,
-            children
+            children: materials.map(mat =>
+                buildProductionChain(mat.name, mat.qty * runsNeeded, newVisited)
+            )
         };
     }
 
@@ -1762,11 +1752,11 @@
         const content = card.querySelector('.chain-content');
         const isFlipped = inner.classList.toggle('flipped');
         if (isFlipped && !content.dataset.populated) {
-            if (!Object.keys(intermediateRecipes).length) {
-                content.innerHTML = '<p class="chain-no-data">Recipe data is still loading — try again in a moment.</p>';
+            const entry = parsedCraftingData.find(e => e.item === itemName);
+            if (!entry?.materials?.length) {
+                content.innerHTML = '<p class="chain-no-data">Chain data not available — live sheet may still be loading.</p>';
             } else {
-                const chain = buildProductionChain(itemName, 1);
-                content.innerHTML = renderChainTree(chain);
+                content.innerHTML = renderChainTree(buildProductionChain(itemName, 1));
             }
             content.dataset.populated = '1';
         }
@@ -1800,8 +1790,8 @@
     }
 
     /**
-     * Parses one tab's CSV text into [{item, classes, ingredients}].
-     * Columns: 0=Class, 1=Craft, 2=Materials (ignored), 3=Resources, 4=Locations
+     * Parses one tab's CSV text into [{item, classes, ingredients, materials}].
+     * Columns: 0=Class, 1=Craft, 2=Materials (crafted intermediates), 3=Resources (raw), 4=Locations
      */
     function parseSheetTab(csvText) {
         const items = [];
@@ -1810,15 +1800,17 @@
             const r = parseCSVLine(line);
             if (r[0] === 'Class') continue; // header row
             const itemName = r[1]?.trim();
-            const resource = r[3]?.trim();
+            const material = r[2]?.trim(); // crafted intermediates column
+            const resource = r[3]?.trim(); // raw farm materials column
             const location = normalizeLocation((r[4] || '').trim());
             if (itemName) {
                 const cls = r[0]?.trim();
-                current = { item: itemName, classes: cls ? [cls] : [], ingredients: [] };
+                current = { item: itemName, classes: cls ? [cls] : [], ingredients: [], materials: [] };
                 items.push(current);
             }
-            if (current && resource) {
-                current.ingredients.push({ resource, location });
+            if (current) {
+                if (material) current.materials.push(material);
+                if (resource) current.ingredients.push({ resource, location });
             }
         }
         return items;
@@ -1838,22 +1830,16 @@
         const url = tab =>
             `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
         try {
-            // Fetch class tabs + Intermediates tab in parallel
-            const allTabs = [...SHEET_TABS, INTERMEDIATE_TAB];
-            const responses = await Promise.all(allTabs.map(tab => fetch(url(tab))));
+            const responses = await Promise.all(SHEET_TABS.map(tab => fetch(url(tab))));
             const texts     = await Promise.all(responses.map(r => r.text()));
 
-            const classTexts       = texts.slice(0, SHEET_TABS.length);
-            const intermediateText = texts[SHEET_TABS.length];
-
-            // Build parsedCraftingData from class tabs
-            const merged = new Map(); // itemName → { classes: Set, ingredients: [] }
+            const merged = new Map(); // itemName → { classes: Set, ingredients: [], materials: [] }
             SHEET_TABS.forEach((tab, idx) => {
-                parseSheetTab(classTexts[idx]).forEach(item => {
+                parseSheetTab(texts[idx]).forEach(item => {
                     if (merged.has(item.item)) {
                         item.classes.forEach(c => merged.get(item.item).classes.add(c));
                     } else {
-                        merged.set(item.item, { classes: new Set(item.classes), ingredients: item.ingredients });
+                        merged.set(item.item, { classes: new Set(item.classes), ingredients: item.ingredients, materials: item.materials });
                     }
                 });
             });
@@ -1861,22 +1847,11 @@
             const liveData = [...merged.entries()].map(([item, d]) => ({
                 item,
                 classes: [...d.classes].sort(),
-                ingredients: d.ingredients
+                ingredients: d.ingredients,
+                materials: d.materials
             }));
 
             parsedCraftingData = buildParsedData(liveData);
-
-            // Build intermediateRecipes from the Intermediates tab
-            intermediateRecipes = {};
-            parseSheetTab(intermediateText).forEach(entry => {
-                const key = normKey(entry.item);
-                intermediateRecipes[key] = entry.ingredients.map(ing => {
-                    const parsed = parseIngredient(ing.resource);
-                    return { name: normKey(parsed.name), qty: parsed.qty };
-                });
-            });
-            console.info('Intermediates loaded:', Object.keys(intermediateRecipes).length, 'recipes');
-
             setDataSourceBadge(true);
             filterData();
             updatePanel();
@@ -1906,6 +1881,11 @@
             ingredients: entry.ingredients.map(ing => {
                 const parsed = parseIngredient(ing.resource);
                 return { location: ing.location, ...parsed, name: normKey(parsed.name) };
+            }),
+            // materials: crafted intermediates from the Materials column (e.g. "4x Hardened Mushroom")
+            materials: (entry.materials || []).map(raw => {
+                const parsed = parseIngredient(raw);
+                return { ...parsed, name: normKey(parsed.name) };
             })
         }));
     }
@@ -2853,7 +2833,6 @@
     filterData();
     updatePanel();
     loadFromSheet();  // async — re-renders if sheet loads; falls back silently if not
-    // intermediateRecipes is now populated by loadFromSheet() via the "Intermediates" tab
 </script>
 
 <!-- Mobile Ingredient Lookup Modal -->
