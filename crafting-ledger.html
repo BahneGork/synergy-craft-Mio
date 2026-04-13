@@ -312,6 +312,19 @@
         min-height: 0;
     }
 
+    /* Title row — desktop: title left, craft btn absolute right (unchanged) */
+    .panel-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .panel-title-row .panel-title {
+        margin: 0;
+        flex: 1;
+    }
+
     /* Shopping panel collapse button — hidden on desktop */
     .panel-collapse-btn {
         display: none;
@@ -370,31 +383,30 @@
         }
 
         /* Shopping panel collapse */
-        .panel-header {
-            cursor: pointer;
-        }
         .panel-collapse-btn {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
             background: transparent;
-            border: none;
+            border: 1px solid var(--gold);
             color: var(--gold);
-            font-family: 'Lora', serif;
-            font-size: 0.82rem;
-            font-weight: 700;
+            width: 26px;
+            height: 26px;
             cursor: pointer;
-            padding: 0;
-            vertical-align: middle;
-            margin-left: 6px;
+            border-radius: 3px;
+            flex-shrink: 0;
         }
         .panel-collapse-btn .chevron {
-            display: inline-block;
             font-style: normal;
             transition: transform 0.25s ease;
         }
         .panel-collapse-btn.open .chevron {
             transform: rotate(180deg);
+        }
+        /* Craft button: no longer absolute on mobile, sits in flex row */
+        .panel-title-row .panel-mode-btn {
+            position: static;
+            flex-shrink: 0;
         }
         .panel-body-wrap {
             display: none;
@@ -1176,8 +1188,11 @@
     <!-- Left: permanent shopping list sidebar -->
     <div id="shoppingPanel" class="shopping-panel" aria-label="Shopping List">
         <div class="panel-header">
-            <button id="panelModeBtn" class="panel-mode-btn" onclick="togglePanelMode()">&#9874; Craft</button>
-            <h2 class="panel-title" onclick="togglePanelCollapse()">Order List <button class="panel-collapse-btn" id="panelCollapseBtn" aria-expanded="false" tabindex="-1"><i class="chevron">&#9660;</i></button></h2>
+            <div class="panel-title-row">
+                <h2 class="panel-title">Order List</h2>
+                <button class="panel-collapse-btn" id="panelCollapseBtn" onclick="togglePanelCollapse()" aria-expanded="false"><i class="chevron">&#9660;</i></button>
+                <button id="panelModeBtn" class="panel-mode-btn" onclick="togglePanelMode()">&#9874; Craft</button>
+            </div>
             <div class="panel-subtitle" id="listCount">0 items selected</div>
             <div id="listItems" class="panel-item-names"></div>
         </div>
