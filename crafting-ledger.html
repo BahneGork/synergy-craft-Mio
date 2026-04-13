@@ -304,6 +304,19 @@
     .help-modal-body li { margin-bottom: 4px; }
     .help-modal-body strong { color: var(--crimson); }
 
+    /* Shopping panel body wrapper — always visible on desktop */
+    .panel-body-wrap {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Shopping panel collapse button — hidden on desktop */
+    .panel-collapse-btn {
+        display: none;
+    }
+
     /* Mobile header collapse */
     .header-collapse-btn {
         display: none;
@@ -868,17 +881,6 @@
     }
 
     /* On desktop the body wrap is always visible and fills remaining space */
-    .panel-body-wrap {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-height: 0;
-    }
-
-    /* Collapse button hidden on desktop */
-    .panel-collapse-btn {
-        display: none;
-    }
 
     .panel-header {
         position: relative;
