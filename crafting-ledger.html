@@ -1047,6 +1047,20 @@
 
     .shop-location strong { color: var(--gold); }
 
+    .site-footer {
+        text-align: center;
+        padding: 18px 20px;
+        font-family: 'Lora', serif;
+        font-style: italic;
+        font-size: 0.82rem;
+        color: #888;
+        border-top: 1px solid rgba(176,141,68,0.25);
+        background: #0d0d0d;
+    }
+    .site-footer strong { color: #aaa; font-style: normal; }
+    .site-footer .discord-link { color: #aaa; }
+    .site-footer .discord-link:hover { color: var(--gold); }
+
 </style>
 </head>
 <body>
@@ -1086,11 +1100,7 @@
             <div class="header-section" style="position:relative;">
                 <button class="help-btn" onclick="toggleHelp()" aria-label="Help">?</button>
                 <h1>Masterwork Crafting Ledger</h1>
-                <p class="credits">
-                    Created by the <strong><a href="https://discord.gg/ZAEfYwdjc8" target="_blank" class="discord-link">Synergy</a></strong> Guild &bull; Neverwinter<br>
-                    <span>Data compiled by <strong>Ivydora</strong> & <strong>Asura</strong></span>
-                    <span id="dataSourceBadge" title="Where crafting data is loaded from" style="display:block; font-size:0.7rem; opacity:0.5; font-family:'Lora',serif; margin-top:2px;"></span>
-                </p>
+                <span id="dataSourceBadge" title="Where crafting data is loaded from" style="display:block; font-size:0.7rem; opacity:0.5; font-family:'Lora',serif; margin-top:4px;"></span>
             </div>
 
             <button class="header-collapse-btn" id="headerCollapseBtn" onclick="toggleHeaderControls()" aria-expanded="false" aria-controls="headerControlsWrap">
@@ -1196,6 +1206,10 @@
     </div>
 
 </div>
+
+<footer class="site-footer">
+    Created by the <strong><a href="https://discord.gg/ZAEfYwdjc8" target="_blank" class="discord-link">Synergy</a></strong> Guild &bull; Neverwinter &nbsp;&bull;&nbsp; Data compiled by <strong>Ivydora</strong> &amp; <strong>Asura</strong>
+</footer>
 
 <script>
     const craftingData = [
