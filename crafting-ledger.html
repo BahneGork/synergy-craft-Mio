@@ -1669,6 +1669,7 @@
     // --- SHEET INTEGRATION ---
     const SHEET_ID        = '1fMSxauujv5uU4bUNkfyviZjOjYyoCB8HNFcN54hDdO0';
     const SHEET_TABS      = ['Bard','Barbarian','Cleric','Fighter','Paladin','Ranger','Rogue','Warlock','Wizard','Rings'];
+    const INTERMEDIATE_TAB = 'Intermediates'; // classless items for chain expansion only
 
     // Number of items produced per single craft run (everything else = 1)
     const RECIPE_YIELD = {
@@ -1830,18 +1831,31 @@
         const url = tab =>
             `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
         try {
-            const responses = await Promise.all(SHEET_TABS.map(tab => fetch(url(tab))));
-            const texts     = await Promise.all(responses.map(r => r.text()));
+            // Fetch class tabs + Intermediates tab in parallel
+            const allTabs     = [...SHEET_TABS, INTERMEDIATE_TAB];
+            const responses   = await Promise.all(allTabs.map(tab => fetch(url(tab))));
+            const texts       = await Promise.all(responses.map(r => r.text()));
+            const clasTexts   = texts.slice(0, SHEET_TABS.length);
+            const interText   = texts[SHEET_TABS.length];
 
             const merged = new Map(); // itemName → { classes: Set, ingredients: [], materials: [] }
+
+            // Class tabs — items get their class assigned
             SHEET_TABS.forEach((tab, idx) => {
-                parseSheetTab(texts[idx]).forEach(item => {
+                parseSheetTab(clasTexts[idx]).forEach(item => {
                     if (merged.has(item.item)) {
                         item.classes.forEach(c => merged.get(item.item).classes.add(c));
                     } else {
                         merged.set(item.item, { classes: new Set(item.classes), ingredients: item.ingredients, materials: item.materials });
                     }
                 });
+            });
+
+            // Intermediates tab — items have no class (chain-only, never shown as cards)
+            parseSheetTab(interText).forEach(item => {
+                if (!merged.has(item.item)) {
+                    merged.set(item.item, { classes: new Set(), ingredients: item.ingredients, materials: item.materials });
+                }
             });
 
             const liveData = [...merged.entries()].map(([item, d]) => ({
@@ -2116,6 +2130,7 @@
         }
 
         const filtered = parsedCraftingData.filter(d => {
+            if (!d.classes.length) return false; // intermediates — chain only, not shown as cards
             const matchesSearch = d.item.toLowerCase().includes(searchVal) ||
                                  d.classes.some(cls => cls.toLowerCase().includes(searchVal));
             const matchesClass = classVal === 'All'
