@@ -1667,12 +1667,9 @@
     }
 
     // --- SHEET INTEGRATION ---
-    const SHEET_ID   = '1fMSxauujv5uU4bUNkfyviZjOjYyoCB8HNFcN54hDdO0';
-    const SHEET_TABS = ['Bard','Barbarian','Cleric','Fighter','Paladin','Ranger','Rogue','Warlock','Wizard','Rings'];
-
-    // --- MW RECIPE CHAIN ---
-    const MW_SHEET_ID  = '1YX2Wt2W4b2eIw_Fc54qsd1J5w9d4DmVVPLbJum1ei6A';
-    const MW_SHEET_GID = '1562621832';
+    const SHEET_ID        = '1fMSxauujv5uU4bUNkfyviZjOjYyoCB8HNFcN54hDdO0';
+    const SHEET_TABS      = ['Bard','Barbarian','Cleric','Fighter','Paladin','Ranger','Rogue','Warlock','Wizard','Rings'];
+    const INTERMEDIATE_TAB = 'Intermediates'; // tab in the same sheet; same column format as class tabs
 
     // Number of items produced per single craft run (everything else = 1)
     const RECIPE_YIELD = {
@@ -1691,46 +1688,9 @@
         "Dreamer's Medical Tea":      3,
     };
 
-    // Populated by loadMWRecipes(); maps normalised item name → [{name, qty}]
+    // Populated by loadFromSheet(); maps normalised item name → [{name, qty}]
+    // Source: the "Intermediates" tab in the live Google Sheet (same column format as class tabs).
     let intermediateRecipes = {};
-
-    /** Parses the MW Recipes CSV into a lookup: product name → ingredient list. */
-    function parseMWRecipes(csvText) {
-        const recipes = {};
-        let current = null;
-        for (const rawLine of csvText.trim().split('\n')) {
-            const r = parseCSVLine(rawLine);
-            if (r.length < 7) continue;
-            const profession  = (r[3] || '').trim();
-            const qtyStr      = (r[4] || '').trim();
-            const ingredient  = normKey((r[5] || '').trim());
-            const product     = (r[6] || '').trim();
-            if (profession && product && product !== 'PRODUCES') {
-                // Strip leading quantity prefix ("4x ") that appears in some produces cells
-                current = normKey(product.replace(/^\d+x\s+/, '').trim());
-                if (!recipes[current]) recipes[current] = [];
-                if (ingredient) {
-                    recipes[current].push({ name: ingredient, qty: parseInt(qtyStr) || 1 });
-                }
-            } else if (!profession && ingredient && current) {
-                recipes[current].push({ name: ingredient, qty: parseInt(qtyStr) || 1 });
-            }
-        }
-        return recipes;
-    }
-
-    /** Fetches the MW Recipes tab and populates intermediateRecipes. */
-    async function loadMWRecipes() {
-        try {
-            const url = `https://docs.google.com/spreadsheets/d/${MW_SHEET_ID}/gviz/tq?tqx=out:csv&gid=${MW_SHEET_GID}`;
-            const resp = await fetch(url);
-            if (!resp.ok) return;
-            intermediateRecipes = parseMWRecipes(await resp.text());
-            console.info('MW recipes loaded:', Object.keys(intermediateRecipes).length, 'recipes');
-        } catch (e) {
-            console.info('MW recipes unavailable:', e.message);
-        }
-    }
 
     /**
      * Recursively resolves the full production chain for itemName given qtyNeeded.
@@ -1878,12 +1838,18 @@
         const url = tab =>
             `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
         try {
-            const responses = await Promise.all(SHEET_TABS.map(tab => fetch(url(tab))));
+            // Fetch class tabs + Intermediates tab in parallel
+            const allTabs = [...SHEET_TABS, INTERMEDIATE_TAB];
+            const responses = await Promise.all(allTabs.map(tab => fetch(url(tab))));
             const texts     = await Promise.all(responses.map(r => r.text()));
 
+            const classTexts       = texts.slice(0, SHEET_TABS.length);
+            const intermediateText = texts[SHEET_TABS.length];
+
+            // Build parsedCraftingData from class tabs
             const merged = new Map(); // itemName → { classes: Set, ingredients: [] }
             SHEET_TABS.forEach((tab, idx) => {
-                parseSheetTab(texts[idx]).forEach(item => {
+                parseSheetTab(classTexts[idx]).forEach(item => {
                     if (merged.has(item.item)) {
                         item.classes.forEach(c => merged.get(item.item).classes.add(c));
                     } else {
@@ -1899,6 +1865,18 @@
             }));
 
             parsedCraftingData = buildParsedData(liveData);
+
+            // Build intermediateRecipes from the Intermediates tab
+            intermediateRecipes = {};
+            parseSheetTab(intermediateText).forEach(entry => {
+                const key = normKey(entry.item);
+                intermediateRecipes[key] = entry.ingredients.map(ing => {
+                    const parsed = parseIngredient(ing.resource);
+                    return { name: normKey(parsed.name), qty: parsed.qty };
+                });
+            });
+            console.info('Intermediates loaded:', Object.keys(intermediateRecipes).length, 'recipes');
+
             setDataSourceBadge(true);
             filterData();
             updatePanel();
@@ -2875,7 +2853,7 @@
     filterData();
     updatePanel();
     loadFromSheet();  // async — re-renders if sheet loads; falls back silently if not
-    loadMWRecipes();  // async — populates intermediateRecipes for production chain cards
+    // intermediateRecipes is now populated by loadFromSheet() via the "Intermediates" tab
 </script>
 
 <!-- Mobile Ingredient Lookup Modal -->
