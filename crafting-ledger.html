@@ -255,11 +255,6 @@
         display: none;
     }
 
-    .header-controls-wrap {
-        overflow: hidden;
-        transition: max-height 0.32s ease, opacity 0.25s ease;
-    }
-
     @media (max-width: 800px) {
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
@@ -276,39 +271,35 @@
         .header-collapse-btn {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
-            margin: 6px auto 0 auto;
+            width: 100%;
+            margin: 8px 0 0 0;
             background: transparent;
-            border: 1px solid var(--gold);
+            border: none;
+            border-top: 1px solid rgba(176,141,68,0.35);
             color: var(--gold);
             font-family: 'Lora', serif;
-            font-size: 0.78rem;
+            font-size: 0.82rem;
             font-weight: 700;
-            padding: 4px 12px;
+            padding: 8px 12px;
             cursor: pointer;
-            border-radius: 3px;
-            transition: background 0.2s, color 0.2s;
-        }
-        .header-collapse-btn:hover {
-            background: var(--gold);
-            color: #fff;
+            box-sizing: border-box;
         }
         .header-collapse-btn .chevron {
             display: inline-block;
-            transition: transform 0.28s ease;
             font-style: normal;
+            transition: transform 0.25s ease;
         }
         .header-collapse-btn.open .chevron {
             transform: rotate(180deg);
         }
 
         .header-controls-wrap {
-            max-height: 0;
-            opacity: 0;
+            display: none;
         }
         .header-controls-wrap.open {
-            max-height: 400px;
-            opacity: 1;
+            display: block;
         }
     }
 
