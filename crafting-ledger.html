@@ -1186,6 +1186,33 @@
 
     .shop-location strong { color: var(--gold); }
 
+    /* --- MODE TOGGLE BUTTON (always visible in header) --- */
+    .mode-toggle-btn {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        font-family: 'Lora', serif;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+        white-space: nowrap;
+    }
+    .mode-toggle-btn:hover { background: var(--gold); color: #fff; }
+
+    /* --- SIMPLE MODE OVERRIDES --- */
+    body[data-mode="simple"] .flip-btn          { display: none; }
+    body[data-mode="simple"] .view-btn-row      { display: none; }
+    body[data-mode="simple"] #panelModeBtn      { display: none; }
+    body[data-mode="simple"] .lookup-panel      { display: none !important; }
+    body[data-mode="simple"] .shop-remaining    { display: none; }
+    body[data-mode="simple"] .shop-collected    { display: none; }
+
     .site-footer {
         text-align: center;
         padding: 18px 20px;
@@ -1242,6 +1269,7 @@
     <div class="main-content">
         <div class="sticky-header">
             <div class="header-section" style="position:relative;">
+                <button class="mode-toggle-btn" id="modeToggleBtn" onclick="toggleUIMode()">&#9881; Advanced</button>
                 <button class="help-btn" onclick="toggleHelp()" aria-label="Help">?</button>
                 <h1>Masterwork Crafting Ledger</h1>
                 <span id="dataSourceBadge" title="Where crafting data is loaded from" style="display:block; font-size:0.7rem; opacity:0.5; font-family:'Lora',serif; margin-top:4px;"></span>
@@ -1932,7 +1960,8 @@
         locExcluded: new Set(),  // item names excluded from location view totals
         view: 'cards',
         craftQty: {},            // itemName → desired craft quantity (craft planner)
-        panelMode: 'shop'        // 'shop' | 'craft'
+        panelMode: 'shop',       // 'shop' | 'craft'
+        uiMode: 'simple'         // 'simple' | 'advanced'
     };
 
     // localStorage helpers with fallback for browsers that block it on file://
@@ -1961,11 +1990,14 @@
             if (locG) appState.locGathered = normalizeLocGathered(JSON.parse(locG));
             const cq = storage.getItem('synergy-crafting-craft-qty');
             if (cq) appState.craftQty = JSON.parse(cq);
+            const uiMode = storage.getItem('synergy-crafting-ui-mode');
+            appState.uiMode = uiMode || 'simple';
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
             appState.locGathered = {};
             appState.craftQty = {};
+            appState.uiMode = 'simple';
         }
     }
 
@@ -1976,6 +2008,37 @@
 
     function saveCraftQty() {
         storage.setItem('synergy-crafting-craft-qty', JSON.stringify(appState.craftQty));
+    }
+
+    function saveUIMode() {
+        storage.setItem('synergy-crafting-ui-mode', appState.uiMode);
+    }
+
+    /** Applies the current uiMode to the DOM — sets body[data-mode] and updates the toggle button label. */
+    function applyUIMode() {
+        document.body.dataset.mode = appState.uiMode;
+        const btn = document.getElementById('modeToggleBtn');
+        btn.textContent = appState.uiMode === 'simple' ? '\u2699 Advanced' : '\u2699 Simple';
+    }
+
+    function toggleUIMode() {
+        appState.uiMode = appState.uiMode === 'simple' ? 'advanced' : 'simple';
+        saveUIMode();
+        // If switching to simple while in a non-card view, return to cards first
+        if (appState.uiMode === 'simple' && appState.view !== 'cards') {
+            if (appState.view === 'location') toggleView();
+            else if (appState.view === 'inventory') toggleInventoryView();
+        }
+        // If switching to simple while in craft mode, revert to shop mode
+        if (appState.uiMode === 'simple' && appState.panelMode === 'craft') {
+            appState.panelMode = 'shop';
+            const modeBtn = document.getElementById('panelModeBtn');
+            modeBtn.textContent = '\u2692 Craft';
+            modeBtn.classList.remove('active');
+        }
+        applyUIMode();
+        filterData();
+        updatePanel();
     }
 
     function saveSelected() {
@@ -2069,11 +2132,14 @@
 
             const ingredientHtml = entry.ingredients.map((ing) => {
                 const isDone = (appState.locGathered[ing.name] || 0) >= ing.qty;
+                const nameHtml = appState.uiMode === 'simple'
+                    ? `<span class="name ${getColorClass(ing.name)}">${escHtml(ing.name)}</span>`
+                    : `<button class="name-btn ${getColorClass(ing.name)}" data-ingredient="${escHtml(ing.name)}" onclick="showIngredientUses(this.dataset.ingredient)">${escHtml(ing.name)}</button>`;
                 return `
                     <div class="ingredient-row${isDone ? ' done' : ''}" data-ing="${escHtml(ing.name)}" data-qty="${ing.qty}">
                         <div class="qty-name-group">
                             <span class="qty">${ing.qty}x</span>
-                            <button class="name-btn ${getColorClass(ing.name)}" data-ingredient="${escHtml(ing.name)}" onclick="showIngredientUses(this.dataset.ingredient)">${escHtml(ing.name)}</button>
+                            ${nameHtml}
                         </div>
                         <div class="location-text">Source: <strong>${escHtml(ing.location)}</strong></div>
                     </div>`;
@@ -2858,6 +2924,7 @@
     });
 
     loadState();
+    applyUIMode();    // set body[data-mode] before first render so CSS is correct from the start
     filterData();
     updatePanel();
     loadFromSheet();  // async — re-renders if sheet loads; falls back silently if not
