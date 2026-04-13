@@ -382,6 +382,27 @@
             display: block;
         }
 
+        /* Collapsible item cards on mobile */
+        .card-body {
+            display: none;
+        }
+        .item-card.expanded .card-body {
+            display: block;
+        }
+        .item-title {
+            cursor: pointer;
+            padding-bottom: 4px;
+        }
+        .item-title::after {
+            content: ' ▼';
+            font-size: 0.65em;
+            opacity: 0.5;
+            font-family: sans-serif;
+        }
+        .item-card.expanded .item-title::after {
+            content: ' ▲';
+        }
+
         /* Shopping panel collapse */
         .panel-collapse-btn {
             display: flex;
@@ -2074,7 +2095,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <h2 class="item-title">${escHtml(entry.item)}</h2>
+                            <h2 class="item-title" onclick="toggleCard(this.closest('[data-item]').dataset.item)">${escHtml(entry.item)}</h2>
                         </div>
                         <div class="card-body">
                             <div class="progress-bar-row">
@@ -2214,6 +2235,11 @@
 
     /** Renders the shopping list sidebar from buildShoppingList() output. Updates item count subtitle. */
     // --- CRAFT PLANNER ---
+
+    function toggleCard(itemName) {
+        const card = document.querySelector(`.item-card[data-item="${CSS.escape(itemName)}"]`);
+        if (card) card.classList.toggle('expanded');
+    }
 
     function togglePanelCollapse() {
         const wrap = document.getElementById('panelBodyWrap');
