@@ -1359,94 +1359,13 @@
 
 <script>
     const craftingData = [
-  // --- CONSOLIDATED SHARED SETS ---
-  {
-    "classes": ["Bard", "Barbarian", "Fighter", "Ranger", "Rogue"],
-    "item": "Shroomwood Amulet",
-    "ingredients": [
-      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "2x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "40x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "5x Terebinth", "location": "Stronghold" },
-      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "15x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
-      { "resource": "1x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" }
-    ]
-  },
-  {
-    "classes": ["Bard", "Barbarian", "Fighter", "Ranger", "Rogue"],
-    "item": "Shroomwood Sash",
-    "ingredients": [
-      { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "2x Fallen God's Ore", "location": "Master Demonweb Pits" },
-      { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "12x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "1x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "4x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
-      { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
-      { "resource": "8x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
-      { "resource": "4x Goristro Hide", "location": "Advanced Demonweb Pits" },
-      { "resource": "13x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" }
-    ]
-  },
-  {
-    "classes": ["Cleric", "Warlock", "Wizard"],
-    "item": "Scintillant Amulet",
-    "ingredients": [
-      { "resource": "17x Fallen God's Ore", "location": "Master Demonweb Pits" },
-      { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "3x Abyssal Crystal", "location": "Master Demonweb Pits" },
-      { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
-      { "resource": "24x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "6x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "24x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
-      { "resource": "48x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "5x Terebinth", "location": "Stronghold" },
-      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "12x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
-      { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" }
-    ]
-  },
-  {
-    "classes": ["Cleric", "Warlock", "Wizard"],
-    "item": "Scintillant Sash",
-    "ingredients": [
-      { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "4x Fallen God's Ore", "location": "Master Demonweb Pits" },
-      { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
-      { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
-      { "resource": "12x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "8x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
-      { "resource": "3x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "4x Goristro Hide", "location": "Advanced Demonweb Pits" }
-    ]
-  },
-  {
-    "classes": ["Barbarian", "Fighter", "Paladin"],
-    "item": "Darklake Ward Ring",
-    "ingredients": [
-      { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "2x Fallen God's Ore", "location": "Master Demonweb Pits" },
-      { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "16x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
-      { "resource": "15x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "5x Terebinth", "location": "Stronghold" }
-    ]
-  },
-
-  // --- UNIQUE CLASS WEAPONS ---
   {
     "classes": ["Bard"],
     "item": "Duergar Mercenary's Steel Rapier",
+    "materials": ["3x Marilith Charm", "4x Unknown Godsteel", "2x Lacquered Goristro Leather", "1x Hardened Mushroom", "1x Soul Bead"],
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -1464,9 +1383,10 @@
   {
     "classes": ["Bard"],
     "item": "Duergar Mercenary's Steel Lute",
+    "materials": ["3x Marilith Charm", "4x Hardened Mushroom", "1x Spool of Marilithsilk", "2x Unknown Godsteel"],
     "ingredients": [
       { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "3x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "3x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -1478,48 +1398,97 @@
     ]
   },
   {
+    "classes": ["Barbarian", "Bard", "Fighter", "Ranger", "Rogue"],
+    "item": "Shroomwood Amulet",
+    "materials": ["1x Living Fungi", "2x Mushroom Lumber", "4x Underdark Fiber", "2x Purified Darklake Water"],
+    "ingredients": [
+      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
+      { "resource": "2x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "40x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "5x Terebinth", "location": "Stronghold" },
+      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
+      { "resource": "15x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "1x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" }
+    ]
+  },
+  {
+    "classes": ["Barbarian", "Bard", "Fighter", "Ranger", "Rogue"],
+    "item": "Shroomwood Sash",
+    "materials": ["1x Living Fungi", "2x Lolthbead", "4x Goristro Hide", "1x Spool of Marilithsilk"],
+    "ingredients": [
+      { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "2x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
+      { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
+      { "resource": "13x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "12x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
+      { "resource": "1x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "8x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
+      { "resource": "4x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "4x Goristro Hide", "location": "Advanced Demonweb Pits" }
+    ]
+  },
+  {
     "classes": ["Barbarian"],
     "item": "Duergar Mercenary's Steel Hammer",
+    "materials": ["3x Unknown Godsteel", "4x Hardened Mushroom", "2x Lacquered Goristro Leather", "3x Perfect Marilith Hair", "4x Druegarsteel Scrap"],
     "ingredients": [
-      { "resource": "16x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "1x Fallen God's Ore", "location": "Master Demonweb Pits" },
-      { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "2x Shroomsap Spores", "location": "Abyssal Hunt Mod: Itty Bitty" },
-      { "resource": "8x Goristro Hide", "location": "Advanced Demonweb Pits" },
-      { "resource": "3x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
+      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
+      { "resource": "14x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "30x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "10x Terebinth", "location": "Stronghold" },
-      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "14x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" }
+      { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
+      { "resource": "16x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "1x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "2x Shroomsap Spores", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "8x Goristro Hide", "location": "Advanced Demonweb Pits" },
+      { "resource": "3x Perfect Marilith Hair", "location": "Master Demonweb Pits" }
     ]
   },
   {
     "classes": ["Barbarian"],
     "item": "Duergar Mercenary's Steel Sword Knot",
+    "materials": ["3x Marilith Charm", "4x Lolthbead", "2x Soul Bead", "1x Underdark Fiber"],
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "12x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "3x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
       { "resource": "24x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "6x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "16x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
-      { "resource": "12x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "12x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" }
+      { "resource": "6x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" }
+    ]
+  },
+  {
+    "classes": ["Barbarian", "Fighter", "Paladin"],
+    "item": "Darklake Ward Ring",
+    "materials": ["4x Menzoberranzan Faerzress Crystal", "4x Lolthbead", "1x Purified Darklake Water", "1x Unkown Godsteel"],
+    "ingredients": [
+      { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "2x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "4x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
+      { "resource": "16x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
+      { "resource": "15x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "5x Terebinth", "location": "Stronghold" }
     ]
   },
   {
     "classes": ["Cleric"],
     "item": "Duergar Mercenary's Steel Symbol",
+    "materials": ["3x Living Fungi", "2x Lacquered Mushroom", "2x Soul Bead", "2x Unknown Godsteel", "1x Hardened Mushroom"],
     "ingredients": [
       { "resource": "40x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "6x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "22x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "5x Terebinth", "location": "Stronghold" },
       { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "8x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "8x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "16x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
       { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
@@ -1532,23 +1501,61 @@
   {
     "classes": ["Cleric"],
     "item": "Duergar Mercenary's Steel Icon",
+    "materials": ["3x Marilith Charm", "4x Unknown Godsteel", "1x Soul Bead", "1x Spool of Marilithsilk"],
     "ingredients": [
-      { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
       { "resource": "12x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "16x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
-      { "resource": "6x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" }
+      { "resource": "6x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" }
+    ]
+  },
+  {
+    "classes": ["Cleric", "Warlock", "Wizard"],
+    "item": "Scintillant Amulet",
+    "materials": ["1x Marilith Charm", "3x Soul Bead", "4x Underdark Fiber", "2x Purified Darklake Water"],
+    "ingredients": [
+      { "resource": "17x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
+      { "resource": "3x Abyssal Crystal", "location": "Master Demonweb Pits" },
+      { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
+      { "resource": "24x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "6x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "24x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
+      { "resource": "48x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "5x Terebinth", "location": "Stronghold" },
+      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
+      { "resource": "12x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" }
+    ]
+  },
+  {
+    "classes": ["Cleric", "Warlock", "Wizard"],
+    "item": "Scintillant Sash",
+    "materials": ["1x Marilith Charm", "1x Lolthbead", "4x Goristro Hide", "1x Spool of Marilithsilk"],
+    "ingredients": [
+      { "resource": "4x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
+      { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
+      { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
+      { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
+      { "resource": "12x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "3x Faerzress Rock", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "8x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
+      { "resource": "3x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "4x Goristro Hide", "location": "Advanced Demonweb Pits" }
     ]
   },
   {
     "classes": ["Fighter"],
-    "item": "Duergar Mercenary's Steel Longsword",
+    "item": "Duergars Mercenary's Steel Longsword",
+    "materials": ["3x Marilith Charm", "4x Hardened Mushroom", "2x Lacquered Goristro Leather", "3x Perfect Marilith Hair", "1x Abyssal Crystal"],
     "ingredients": [
-      { "resource": "2x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "2x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "3x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -1563,10 +1570,11 @@
   },
   {
     "classes": ["Fighter"],
-    "item": "Duergar Mercenary's Steel Shield",
+    "item": "Duergars Mercenary's Steel Shield",
+    "materials": ["3x Marilith Charm", "4x Unknown Godsteel", "2x Mushroom Lumber", "3x Lacquered Mushroom"],
     "ingredients": [
       { "resource": "24x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "4x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "4x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -1580,9 +1588,10 @@
   {
     "classes": ["Paladin"],
     "item": "Duergar Mercenary's Steel Mace",
+    "materials": ["3x Marilith Charm", "4x Hardened Mushroom", "2x Lacquered Goristro Leather", "3x Unknown Godsteel", "1x Goristro Hide"],
     "ingredients": [
       { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "3x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "3x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "5x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "1x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -1597,9 +1606,10 @@
   {
     "classes": ["Paladin"],
     "item": "Duergar Mercenary's Steel Bulwark",
+    "materials": ["3x Marilith Charm", "4x Unknown Godsteel", "2x Soul Bead", "1x Lacquered Goristro Leather"],
     "ingredients": [
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "11x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "11x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "2x Abyssal Crystal", "location": "Master Demonweb Pits" },
       { "resource": "1x Demonweb Faerzress Crystal", "location": "Advanced Demonweb Pits" },
@@ -1615,14 +1625,15 @@
   },
   {
     "classes": ["Warlock"],
-    "item": "Duergar Mercenary's Steel Pactblade",
+    "item": "Duergars Mercenary Steel Pactblade",
+    "materials": ["3x Living Fungi", "2x Spool of Marilithsilk", "2x Soul Bead", "3x Unknown Godsteel", "2x Hardened Mushroom"],
     "ingredients": [
       { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "2x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "25x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
       { "resource": "5x Terebinth", "location": "Stronghold" },
       { "resource": "36x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "9x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "9x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "7x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
       { "resource": "24x Perfect Marilith Hair", "location": "Master Demonweb Pits" },
       { "resource": "3x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
@@ -1633,20 +1644,21 @@
   },
   {
     "classes": ["Warlock"],
-    "item": "Duergar Mercenary's Steel Book",
+    "item": "Duergars Mercenary Steel Book",
+    "materials": ["3x Unknown Godsteel", "4x Lacquered Goristro Leather", "2x Underdark Fiber", "4x Living Fungi"],
     "ingredients": [
-      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "26x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "44x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
-      { "resource": "10x Terebinth", "location": "Stronghold" },
-      { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" },
-      { "resource": "1x Fallen God's Ore", "location": "Master Demonweb Pits" },
+      { "resource": "1x Fallen God\u2019s Ore", "location": "Master Demonweb Pits" },
       { "resource": "2x Calcified Webbing", "location": "Demonweb Pits Campaign Store" },
-      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
-      { "resource": "12x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "26x Mushroom Droplet", "location": "Abyssal Hunt Mod: Tricky Reversal" },
+      { "resource": "24x Mushroom Log", "location": "Explorer Chart: Menzoberranzan" },
       { "resource": "12x Menzoberranzan Faerzress Crystal", "location": "Abyssal Hunt Mod: Tricky Reversal" },
       { "resource": "16x Goristro Hide", "location": "Advanced Demonweb Pits" },
-      { "resource": "4x Shroomsap Spores", "location": "Abyssal Hunt Mod: Itty Bitty" }
+      { "resource": "4x Shroomsap Spores", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "44x Luminescent Darklake Water", "location": "Explorer Chart: Narbondellyn" },
+      { "resource": "10x Terebinth", "location": "Stronghold" },
+      { "resource": "48x Fluorescent Flora", "location": "Explorer Chart: Menzoberranzan" },
+      { "resource": "12x Fungal Moss", "location": "Abyssal Hunt Mod: Itty Bitty" },
+      { "resource": "12x Druegarsteel Scrap", "location": "Abyssal Hunt Mod: Tricky Reversal" }
     ]
   }
 ];
