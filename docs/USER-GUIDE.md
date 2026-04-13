@@ -1,7 +1,7 @@
 # User Guide — Masterwork Crafting Ledger
 
 Made by the **Synergy Guild** for Neverwinter players.  
-Data compiled by **Ivydora** & **Asura**.  
+Data compiled by **Ivydora** & **Asura**. Layout/Design by **Elanor**. Enhanced features by **Mio**.  
 Join us on [Discord](https://discord.gg/ZAEfYwdjc8).
 
 ---
@@ -14,6 +14,8 @@ The Masterwork Crafting Ledger is a tool that helps you plan and track the mater
 - Build a shopping list for the items you want to craft
 - Track how many of each material you've gathered using the gathering ledger
 - See at a glance how many more of each ingredient you still need
+- Use the Craft Planner to check whether your current inventory can fill a set of craft orders
+- Flip any item card to see its full production chain
 - Filter by farming location so you know exactly what to pick up during a run
 - Export your shopping list to share with guildmates
 - Back up and restore your progress if you re-download or move the file
@@ -22,9 +24,9 @@ The Masterwork Crafting Ledger is a tool that helps you plan and track the mater
 
 ## Getting Started
 
-Open `crafting-ledger.html` in any modern web browser — Chrome, Firefox, Edge, or similar. No installation required. The tool works entirely in your browser, and your progress is saved automatically.
+Open the tool in any modern web browser — Chrome, Firefox, Edge, or similar. No installation required. Your progress is saved automatically.
 
-> **Note:** Keep the file in the same location on your computer. Moving it to a different folder will start a fresh save (browser storage is tied to the file's location). Use **Export Backup** before moving it.
+> **Note (local file):** If running the HTML file locally, keep it in the same location. Moving it to a different folder will start a fresh save (browser storage is tied to the file's path). Use **Export Backup** before moving it.
 
 ---
 
@@ -40,7 +42,7 @@ Use the dropdown to narrow results to a single class. When a class is selected a
 > The "this class only" checkbox is only available in card view. It is hidden when using the gathering ledger.
 
 ### Ingredient colours
-Ingredients are colour-coded by rarity/source type to help you quickly spot what you need:
+Ingredients are colour-coded by rarity/source type:
 
 | Colour | Type | Examples |
 |---|---|---|
@@ -50,145 +52,151 @@ Ingredients are colour-coded by rarity/source type to help you quickly spot what
 | Black | Uncategorised | Any other material |
 
 ### Ingredient lookup
-Click any ingredient name to see a list of all crafting items that require it, shown in the **Used In** panel on the right side of the page.
+Click any ingredient name to see all crafting items that require it.
+
+- **Desktop:** results appear in the **Used In** panel on the right side of the page
+- **Mobile:** a slide-up popup appears at the bottom of the screen; tap the backdrop or × to dismiss
 
 ---
 
-## Shopping List
+## Item Cards
 
-The **Shopping List** panel on the left side of the page is your planning workspace.
+Each item card shows the class badges, the item name, an ingredient list with progress, and two action buttons.
+
+### Production chain (⛓ Chain)
+Click **⛓ Chain** to flip the card over. The back face shows the full MW Recipes production chain — every intermediate crafted item and raw material, with run counts and yield-aware maths (e.g. Purified Darklake Water yields 3 per run, so the chain shows how many runs are needed and any surplus). Click **↩ Back** to flip back.
+
+> The chain data is loaded live from the MW Recipes Google Sheet. If it says "still loading", wait a moment and flip again.
+
+### Add to List
+The **+ Add to List** button adds the item to your shopping list. It turns red and changes to **✓ In List** when selected. Selected items float to the top of the card grid.
+
+### On mobile
+Item cards are **collapsed by default** to save screen space. Tap the item name to expand the full ingredient list. A small ▼/▲ indicator shows the state.
+
+---
+
+## Shopping List Panel
+
+The **Order List** panel on the left is your planning workspace.
 
 ### Adding items
-Each item card has a **+ Add to List** button in the top-right corner. Click it to add that item to your shopping list. Added items move to the top of the card grid so they're easy to find. The button turns red to show the item is selected.
+Click **+ Add to List** on any item card. Selected items move to the top of the grid. The button turns red.
 
 ### What the panel shows
-When you have items selected, the shopping list panel shows a combined ingredient list sorted by:
+The shopping list aggregates ingredients across all selected items, sorted by:
 1. **Incomplete ingredients first**, then fully gathered ones at the bottom
 2. Within incomplete: **grouped by farming location**, then alphabetically
 
-For each ingredient you'll see:
+For each ingredient:
 - **Total quantity** needed across all selected items
-- **Still needed** — how many more you have left to gather (shown in bold red)
-- **How much you've gathered** and out of how much total
+- **Still needed** — how many more you have left to gather (bold red)
+- **Gathered / total** progress
 - **Where to farm** it
 
-Ingredients you've fully gathered are crossed out and dimmed at the bottom of the list.
+Fully gathered ingredients are crossed out and dimmed at the bottom.
+
+### On mobile
+The shopping panel is collapsible — tap **Order List ▼** in the panel header to hide or show the list content.
 
 ### Exporting your list
-Three export buttons sit at the bottom of the shopping list panel:
-- **TXT** — plain text with fixed columns, paste into Discord or a text file
-- **MD** — Markdown table format, works in GitHub, Notion, Obsidian, etc.
+Three export buttons at the bottom of the panel:
+- **TXT** — plain text with fixed columns, paste into Discord
+- **MD** — Markdown table format (GitHub, Notion, Obsidian)
 - **CSV** — opens in Excel or Google Sheets
 
-All exports are sorted to match the panel (incomplete first, by location) and include: ingredient name, total needed, how much gathered, and source location.
+All exports include: ingredient name, total needed, gathered, and source location.
 
 > The export buttons shake red if your shopping list is empty.
 
 ---
 
-## Tracking Gathered Materials
+## Craft Planner
 
-All gathering is tracked through the **Gathering Ledger by Location**. There are no per-item counters on the cards — gathering is always tracked as a shared pool per ingredient, so entering a number once updates everything that needs that ingredient.
+The **⚒ Craft** button in the top-right corner of the shopping panel switches to Craft mode. Use this when you are a guild crafter checking whether your current inventory can fill a set of craft orders.
 
-When you've gathered enough of an ingredient to satisfy all your selected items, its row turns **green** and it sinks to the bottom of the shopping list. Item cards also reflect this — ingredient rows turn green based on what you've entered in the ledger.
+### How it works
+1. Add the items you intend to craft to the shopping list
+2. Click **⚒ Craft** to enter Craft mode
+3. Set the desired quantity for each item using the number inputs
+4. The feasibility table shows every ingredient with:
+   - How much is **needed** (multiplied by craft quantities)
+   - How much you **have** (from your gathered amounts)
+   - A ✓ / ✗ indicator and the surplus or deficit
 
-See the [Gathering Ledger](#gathering-ledger-by-location) section below for full details.
+The ingredient pool is shared correctly across all craft orders — if two items share Druegarsteel Scrap, the totals are combined before checking.
+
+Click **📦 Shop** to return to the normal shopping list view.
 
 ---
 
-## Saving and Backup
+## Tracking Gathered Materials
 
-### How your data is saved automatically
+All gathering is tracked through the **⊞ Gathering Ledger by Location**. Gathering is always a **shared pool per ingredient** — entering a number once updates everything that needs that ingredient.
 
-Every time you update the gathered counter or shopping list, it saves instantly in your browser using `localStorage`. No account or internet connection is needed — everything stays on your machine.
-
-**Your data survives:**
-- Refreshing the page
-- Closing and reopening the browser
-- Restarting your computer
-
-### When saving breaks
-
-| Situation | What happens |
-|---|---|
-| You clear browser cookies or site data | All progress and selections are permanently wiped |
-| You move or rename the HTML file | The browser treats it as a different site — a fresh empty save starts; the old data is orphaned |
-| You open the file from a different folder | Same as above — new save slot, old data not visible |
-| You open the file on a different computer | Data does not transfer between machines |
-| You use a private / incognito window | Data is lost the moment the window closes |
-| Safari with strict privacy settings | Falls back to in-memory only — data is lost on refresh |
-
-### Backup and Restore
-
-The **Export Backup** and **Import Backup** buttons at the bottom of the shopping list panel let you save and restore all your progress.
-
-**Export Backup** downloads a `crafting-backup-YYYY-MM-DD.json` file containing:
-- Your shopping list selections
-- All gathered amounts
-
-**Import Backup** opens a file picker. Select your `.json` backup and all your data is restored immediately.
-
-**When to use it:**
-- Before re-downloading a new version of the tool
-- Before moving the HTML file to a different folder
-- To transfer progress to another computer
-
-Keep the backup file somewhere permanent (Documents, Desktop) — not in the same temp folder as the HTML file.
-
-### Resetting progress
-
-- **Reset Gathered** — clears all gathered amounts but keeps your shopping list selections. Useful when starting a new farming session from scratch.
-- **Reset All Progress** — clears everything: gathered amounts and shopping list. Both buttons ask for confirmation (click once to see the prompt, click again to confirm within 2.5 seconds).
+When you've gathered enough to satisfy all your selected items, the ingredient row turns **green** and sinks to the bottom of the shopping list.
 
 ---
 
 ## Gathering Ledger by Location
 
-The gathering ledger is designed for active farming sessions. Instead of scrolling through full item cards, you get a focused table showing exactly what you need from one specific place.
+Designed for active farming sessions — one focused table per location instead of scrolling full item cards.
 
-### Switching to the gathering ledger
-Click the **⊞ Gathering ledger by location** button in the controls row. The card grid is replaced by a location dropdown and a grouped ingredient table. Click **⊠ Item cards** to go back.
+### Switching views
+Click **⊞ Gathering ledger by location** in the controls. Click **⊠ Item cards** to go back.  
+The **⊞ All Resources** button shows every ingredient across all items in one table.
 
 ### Using the table
 1. Select a location from the dropdown
-2. The table shows one row per **ingredient** at that location, sorted alphabetically
-3. Each row shows: **total quantity needed**, **how many gathered** (editable), **ingredient name**, and a **comma-separated list of crafting items** that need it
+2. The table shows one row per ingredient at that location
+3. Each row: **total quantity needed**, **gathered counter** (editable), **ingredient name**, **crafting items** that need it
 
 As you type a gathered amount:
-- Item names in the list turn **green** when your gathered total meets their individual requirement
+- Item names turn **green** when your total meets their individual requirement
 - The row dims when you've gathered enough for all items
-- The shopping list panel updates in real time
-
-You can still use the search bar and class filter to narrow the table.
+- The shopping list panel updates live
 
 ### Abyssal Hunt mods
-Selecting **Abyssal Hunt** from the dropdown shows a set of checkboxes — one per mod (e.g. Tricky Reversal, Itty Bitty). Tick the mods you are running that session; the table combines ingredients from all ticked mods.
+Selecting **Abyssal Hunt** shows checkboxes for each mod (e.g. Tricky Reversal, Itty Bitty). Tick the mods you are running — the table combines ingredients from all ticked mods.
 
-### Filtering by crafting item
-When the gathering ledger is active the right-hand panel switches to **Filter Items** — a checklist of every crafting item that has ingredients at the selected location. Uncheck an item to remove its quantities from the Needed totals. Useful when you are only crafting a subset of the available items. The filter resets each time you change location.
-
-### How gathered amounts work
-The gathered amount you enter is a **shared pool per ingredient** — not per crafting item. If three of your selected items all need Luminescent Darklake Water and you enter 40 gathered, the shopping list will show 40 collected toward the total across all three items. The "still needed" counter tells you what remains.
+### Filter Items (right panel)
+When the gathering ledger is active the right panel shows **Filter Items** — a checklist of every crafting item with ingredients at the selected location. Uncheck an item to remove its quantities from the Needed totals. Resets each time you change location.
 
 ---
 
-## Tips
+## Saving and Backup
 
-**Before a farming run:**
-1. Add all items you want to craft to the Shopping List
-2. Export to TXT or CSV to keep on your phone or second screen
-3. Switch to the gathering ledger, select your farming destination, and use the **Filter Items** panel to tick only the items you are crafting this run
+### Auto-save
+Every counter update or shopping list change saves instantly in your browser. No account or internet connection needed.
 
-**During a run:**
-- Update gathered counters as you pick up materials
-- The table dims completed rows so you can see at a glance what's still missing
-- The shopping list panel's "still needed" numbers update live
+### When saving breaks
 
-**Planning multiple crafts:**
-- Add several items to the Shopping List to see the combined ingredient totals
-- Check where the totals overlap — materials needed for multiple items can be farmed in one pass
-- Use the ingredient lookup (click any ingredient name in card view) to quickly see which of your target items share a common material
+| Situation | What happens |
+|---|---|
+| Clear browser cookies / site data | All progress permanently wiped |
+| Move or rename the HTML file | New save slot; old data orphaned |
+| Open from a different folder or device | New save slot |
+| Private / incognito window | Data lost when window closes |
+| Safari with strict privacy settings | In-memory fallback — lost on refresh |
 
-**Sharing your list:**
-- Export to TXT and paste directly into the guild Discord
-- Export to CSV and share the spreadsheet with your crafting partner
+### Backup and Restore
+**Export Backup** (bottom of shopping panel) downloads a `.json` file with your shopping list and all gathered amounts.  
+**Import Backup** restores everything in one click.
+
+Use it before re-downloading a new version, moving the file, or switching computers.
+
+### Resetting progress
+- **Reset Gathered** — clears all gathered amounts, keeps shopping list
+- **Reset All Progress** — clears everything
+
+Both ask for confirmation (click once to arm, again within 2.5 seconds to confirm).
+
+---
+
+## Mobile Tips
+
+- The **Filters & View** bar collapses by default — tap it to show the search, class filter, and view buttons
+- The **Order List ▼** header collapses the shopping panel to save space
+- **Item cards are collapsed** by default — tap the item name to expand ingredients
+- Tap any **ingredient name** to open a slide-up "Used In" popup
+- The ⛓ Chain flip works on mobile too — tap the button, scroll the back face if needed

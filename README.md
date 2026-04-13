@@ -2,7 +2,9 @@
 
 An interactive web tool for **Neverwinter** players to plan and track high-end Masterwork crafting. Built by the **Synergy Guild**.
 
-> Data compiled by **Ivydora** & **Asura**. Join us on [Discord](https://discord.gg/ZAEfYwdjc8).
+> Data compiled by **Ivydora** & **Asura**. Layout/Design by **Elanor**. Enhanced features by **Mio**. Join us on [Discord](https://discord.gg/ZAEfYwdjc8).
+
+Live at: [tinygork.com/Synergy-Crafting/crafting-ledger.html](https://tinygork.com/Synergy-Crafting/crafting-ledger.html)
 
 ---
 
@@ -12,21 +14,24 @@ An interactive web tool for **Neverwinter** players to plan and track high-end M
 - **Real-time search** — filter by item name or class as you type
 - **Shopping list** — add items to a persistent left-side panel that aggregates all required ingredients across your selection; sorted by completion status then by farming location
 - **Still needed counter** — each incomplete ingredient shows how many more you need to gather in bold, at a glance
-- **Gathering ledger by location** — switch to a grouped table filtered by farming location; one row per ingredient with a single gathered counter and a list of which items need it. Abyssal Hunt mods can be selected individually or combined
+- **Craft Planner** — switch the shopping panel into Craft mode to enter desired craft quantities per item and see a live feasibility check (green = have enough, red = short by N)
+- **Production chain card flip** — click ⛓ Chain on any card to flip it and see the full MW Recipes production chain with run counts and yield-aware maths
+- **Gathering ledger by location** — switch to a grouped table filtered by farming location; one row per ingredient with a single gathered counter and a list of which items need it; Abyssal Hunt mods can be selected individually or combined
+- **All Resources view** — see every ingredient across all recipes in one sortable table with your current gathered amounts
 - **Filter Items panel** — in the gathering ledger the right sidebar becomes a checklist of crafting items at that location; uncheck any item to remove its quantities from the totals
-- **Ingredient lookup** — in card view, click any ingredient name to see every item that needs it in the right panel
+- **Ingredient lookup** — in card view, click any ingredient name to see every item that needs it (desktop: right panel; mobile: slide-up popup)
 - **Colour-coded ingredients** — orange for rare drops, purple for farmable materials, blue for Stronghold resources
 - **Export** — download your shopping list as TXT (Discord-friendly), Markdown, or CSV; sorted to match the on-screen panel
 - **Backup / Restore** — export all progress and selections to a JSON file; import it back after moving or re-downloading the HTML file
 - **Auto-save** — all progress and selections are saved in your browser automatically
+- **Mobile optimised** — collapsible header controls, collapsible shopping panel, collapsible item cards (tap the name to expand), and a slide-up ingredient popup replacing the hidden right panel
 
 ---
 
 ## Quick Start
 
-1. Download `crafting-ledger.html`
-2. Open it in any modern browser (Chrome, Firefox, Edge)
-3. No installation, no server, no account required
+1. Open the [live site](https://tinygork.com/Synergy-Crafting/crafting-ledger.html) in any modern browser, or download `crafting-ledger.html` and open it locally
+2. No installation, no server, no account required
 
 See `docs/USER-GUIDE.md` for full usage instructions.
 
@@ -34,11 +39,12 @@ See `docs/USER-GUIDE.md` for full usage instructions.
 
 ## How saving works
 
-Progress and shopping list selections are stored in your browser using `localStorage` — the same mechanism sites use to remember your preferences without an account. No data is sent anywhere; everything stays on your machine.
+Progress and shopping list selections are stored in your browser using `localStorage`. No data is sent anywhere; everything stays on your machine.
 
 **What is saved:**
 - Gathered amounts per ingredient (from the gathering ledger)
 - Which items are in your shopping list
+- Craft quantities for the Craft Planner
 
 **What survives:**
 - Refreshing the page
@@ -57,48 +63,6 @@ Progress and shopping list selections are stored in your browser using `localSto
 
 **Recommended:** use **Export Backup** (bottom of the shopping list panel) to save a `.json` file before moving the HTML file or re-downloading a new version. **Import Backup** restores everything in one click.
 
-If you need to share progress or move to another machine without the backup file, export to CSV first.
-
-**If you host the tool on a domain:**
-
-- Safari's local-file restriction no longer applies — saving is reliable in all browsers
-- Each visitor has their own independent save; users do not share progress
-- The URL must stay the same forever — changing the domain, subdomain, or switching from `http` to `https` creates a new storage slot and leaves existing saves behind
-- Moving from the local file to a hosted URL also starts fresh — use Export Backup first
-
----
-
-## Roadmap
-
-### Stable persistence for hosted deployments
-
-The current `localStorage` approach is fragile when the tool is hosted: any URL change orphans all existing saves, and there is no way to migrate data short of the JSON backup. The goal is a server-side persistence layer that survives URL changes and works across devices.
-
-**Planned approach:**
-- Add a lightweight companion backend (a small Node.js or PHP service, or a hosted option like Supabase/Firebase) that stores progress against a user-chosen identifier (e.g. a guild tag or username)
-- Keep the front end as a single HTML file; the backend is an optional extra layer — the tool still works without it using the existing `localStorage` fallback
-- Support files would live in a `server/` directory alongside the HTML; a README explains setup for self-hosters
-- The save/load functions (`saveProgress`, `saveSelected`, `loadState`) would be adapted to call the API when available and fall back to `localStorage` when not
-
-**What this solves:**
-- Progress survives URL changes and server migrations
-- Multiple devices can share the same save (log in on your phone during a farming run, log in on your PC at home)
-- Guild members could optionally share a save or each have their own account under one hosted instance
-
----
-
-### Android app
-
-The tool is already a self-contained web page, which makes an Android app achievable without a full rewrite.
-
-**Two viable approaches:**
-
-**Option A — Progressive Web App (PWA):** Add a `manifest.json` and a service worker to the existing HTML. Users can then install it directly from their browser to their home screen. It runs offline, looks like a native app, and requires no app store. This is the lowest-effort path and works on Android and iOS.
-
-**Option B — WebView wrapper:** Package the HTML file inside a native Android shell using Android WebView (or a tool like Capacitor or Cordova). This produces an actual `.apk` that can be sideloaded or published to the Play Store. Gives more control over permissions, splash screen, and offline behaviour but requires a build environment.
-
-**Preference:** Start with the PWA approach (Option A) — it requires only a few additional files (`manifest.json`, `sw.js`, an icon set) and no change to the core HTML logic. If a Play Store listing becomes a goal, wrap the PWA in a Trusted Web Activity (TWA), which is the recommended Android-native path for PWAs and requires minimal extra code.
-
 ---
 
 ## Development
@@ -113,4 +77,6 @@ See `docs/DEVELOPER.md` for architecture details, data format, and how to add ne
 
 - **Guild:** Synergy (Neverwinter)
 - **Data:** Ivydora & Asura
+- **Layout / Design:** Elanor
+- **Enhanced features:** Mio
 - **Original repo:** [jsynon/synergy-craft](https://github.com/jsynon/synergy-craft)

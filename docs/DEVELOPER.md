@@ -8,110 +8,115 @@ The entire application is a **single HTML file** (`crafting-ledger.html`). There
 - Google Fonts — `MedievalSharp` (headers) and `Lora` (body text)
 - TransparentTextures — paper fibre background image
 
-**Layout: three columns**
+**Layout: three columns (desktop)**
 ```
 ┌─────────────────┬──────────────────────────┬──────────────┐
-│  Shopping List  │     Main Content         │  Used In /   │
+│  Order List     │     Main Content         │  Used In /   │
 │  (left sidebar) │  sticky header + grid    │  Filter Items│
 │  300px fixed    │  OR location table       │  (right      │
-│                 │  flex: 1                 │   sidebar)   │
-│                 │                          │  220px fixed │
+│                 │  OR inventory table      │   sidebar)   │
+│                 │  flex: 1                 │  220px fixed │
 └─────────────────┴──────────────────────────┴──────────────┘
 ```
 
-**Two views (main content area):**
-- **Card View** (default) — CSS grid of item cards, each showing ingredients (qty, name, source location) with a progress badge. No per-ingredient gathered counters — gathering is managed entirely through the gathering ledger. Right sidebar shows the **Used In** ingredient lookup.
+**Mobile layout (≤800px):**
+- Three-column layout collapses to a single column (flex-direction: column)
+- Right sidebar (Used In / Filter Items) is hidden; ingredient clicks open a slide-up modal instead
+- Shopping panel stacks above the main content; its body is collapsible
+- Item cards are collapsed by default; the item title is the toggle
+
+**Three views (main content area):**
+- **Card View** (default) — CSS grid of item cards. Each card has a front face (ingredients + progress) and a back face (production chain). No per-ingredient gathered counters on the front — gathering is managed through the gathering ledger.
 - **Gathering Ledger** (Location View) — `<table>` grouped by ingredient for a selected location. Each row has a single editable gathered counter. Right sidebar swaps to the **Filter Items** item checklist.
+- **All Resources** (Inventory View) — flat table of every ingredient across all recipes, with gathered amounts.
 
 **Abyssal Hunt grouping:**
-Locations prefixed `Abyssal Hunt Mod:` are collapsed into a single dropdown entry. Selecting it reveals a checkbox panel (one per mod) so the user can include one or both mods. Mod names are extracted dynamically from `craftingData` — adding a third mod requires no code change.
+Locations prefixed `Abyssal Hunt Mod:` are collapsed into a single dropdown entry. Selecting it reveals a checkbox panel (one per mod). Mod names are extracted dynamically from `craftingData` — adding a third mod requires no code change.
 
 **Persistence:**
 - `localStorage` with three keys:
-  - `synergy-crafting-loc-gathered` — `{ ingredientName: rawNumber }` (primary gathered amounts, set by the gathering ledger)
-  - `synergy-crafting-shopping` — `[itemName, ...]` (shopping list selection)
-  - `synergy-crafting-progress` — legacy per-item progress array, no longer written by the app; preserved for read compatibility with old saves
-- In-memory fallback object used when `localStorage` is blocked (e.g. Safari on `file://`)
+  - `synergy-crafting-loc-gathered` — `{ ingredientName: rawNumber }`
+  - `synergy-crafting-shopping` — `[itemName, ...]`
+  - `synergy-crafting-craft-qty` — `{ itemName: number }` (Craft Planner quantities)
+  - `synergy-crafting-progress` — legacy per-item progress array (read only, never written)
+- In-memory fallback object used when `localStorage` is blocked
 
 ---
 
 ## Persistence
 
-### How it works
-
-Three `localStorage` keys are managed:
+### localStorage keys
 
 | Key | Format | Written by | Purpose |
 |---|---|---|---|
-| `synergy-crafting-loc-gathered` | `{ "Ingredient Name": number }` | `saveProgress()` via `setLocGathered()` | Primary gathered amounts (shared pool per ingredient) |
-| `synergy-crafting-shopping` | `["Item Name", ...]` | `saveSelected()` via `toggleSelected()` | Shopping list selections |
-| `synergy-crafting-progress` | `{ "Item Name": [number, ...] }` | legacy — read only | Old per-item progress from earlier versions |
+| `synergy-crafting-loc-gathered` | `{ "Ingredient Name": number }` | `saveProgress()` | Primary gathered amounts |
+| `synergy-crafting-shopping` | `["Item Name", ...]` | `saveSelected()` | Shopping list selections |
+| `synergy-crafting-craft-qty` | `{ "Item Name": number }` | `saveCraftQty()` | Craft Planner quantities |
+| `synergy-crafting-progress` | `{ "Item Name": [number, ...] }` | legacy — read only | Old per-item progress |
 
-All keys are read once at startup by `loadState()` and merged into `appState`. All rendering reads from `appState`, not directly from `localStorage`.
-
-`locGathered` is the sole source of truth for "how much of this ingredient has been gathered." The legacy `progress` key is loaded but never written — it only prevents old saves from losing collected data entirely on first load.
+All keys are read once at startup by `loadState()` and merged into `appState`. All rendering reads from `appState`.
 
 ### In-memory fallback
 
-`localStorage` access is wrapped in a try/catch. If it throws (Safari on `file://` with strict ITP, or the browser quota is exceeded), the code falls back to a plain JS object. The fallback is transparent to the rest of the code but data is lost on page close.
-
-### Known failure modes
-
-| Cause | Effect | Notes |
-|---|---|---|
-| User clears cookies / site data | All keys deleted — all progress lost | Use Export Backup to prevent data loss |
-| File moved or renamed | `localStorage` is scoped to the full `file://` path — new path = new (empty) storage | Export Backup before moving |
-| File opened from a different machine | `localStorage` is per-device, not synced | Use Export Backup to transfer |
-| Private / incognito window | `localStorage` is cleared when the window closes | Data survives within the session but not beyond it |
-| Safari strict ITP on `file://` | `localStorage.setItem` throws — falls back to in-memory | Session-only persistence |
-| Item name changed in `craftingData` | Old shopping list key orphaned; item no longer appears selected | Item names are the shopping list primary key — treat as immutable |
+`localStorage` access is wrapped in a try/catch. If it throws (Safari on `file://`, quota exceeded), the code falls back to a plain JS object. Transparent to the rest of the code but data is lost on page close.
 
 ### Backup / Restore
 
-`exportBackup()` downloads a JSON file containing `locGathered` and `selectedItems`. `importBackup()` reads it back, writes both keys to `localStorage`, and re-renders. This is the recommended path for moving the file or recovering from a path change.
-
-### Hosting on a domain
-
-When served over HTTP/HTTPS, `localStorage` is scoped to the **origin**. Safari's ITP restriction does not apply to hosted origins. All the same failure modes around origin changes apply — any change to protocol, domain, subdomain, or port creates a new storage slot.
+`exportBackup()` packages `selectedItems`, `locGathered`, and `craftQty` into a versioned JSON object (`version: 1`). `importBackup()` reads it back, writes all three to `appState` and `localStorage`, and re-renders.
 
 ---
 
 ## Data Format
 
-All crafting data lives in the `craftingData` array at the top of the `<script>` block. Each entry follows this shape:
+### craftingData
+
+Hardcoded array at the top of the `<script>` block. Each entry:
 
 ```js
 {
-  "classes": ["Bard", "Fighter"],          // which classes can craft/equip this item
-  "item": "Duergar Mercenary's Steel Rapier",  // unique display name — used as the primary key
+  "classes": ["Bard", "Fighter"],
+  "item": "Duergar Mercenary's Steel Rapier",   // unique — used as primary key
   "ingredients": [
     {
-      "resource": "36x Druegarsteel Scrap",    // "NNx Name" format — parsed by parseIngredient()
-      "location": "Abyssal Hunt Mod: Tricky Reversal"  // source location string
+      "resource": "36x Druegarsteel Scrap",      // "NNx Name" — parsed by parseIngredient()
+      "location": "Abyssal Hunt Mod: Tricky Reversal"
     }
   ]
 }
 ```
 
 **Adding a new item:**
-1. Add an entry to `craftingData` following the format above
-2. Use `"NNx Ingredient Name"` format for all `resource` strings — the regex `/^(\d+)x\s+(.+)$/` parses these
-3. Location strings must be consistent — the location dropdown is derived dynamically, so new unique locations appear automatically
-4. Item names must be unique — they are used as shopping list keys
+1. Add an entry to `craftingData`
+2. Use `"NNx Ingredient Name"` for all `resource` strings
+3. Location strings must be consistent — the dropdown is built dynamically
+4. Item names must be unique — they are the shopping list primary key
 
-**Intermediate crafted ingredients:**
-If an ingredient is itself crafted from other materials (e.g. a fiber made from raw flora), expand it directly into its component raw materials in `craftingData`. Do not list crafted intermediates as ingredients — the tool only tracks raw gathered resources.
+**Ingredients are pre-expanded raw materials.** Do not list crafted intermediates; expand them to their base components. The production chain view (card back face) is loaded separately from the live MW Recipes Google Sheet.
 
-**Adding a new ingredient colour:**
-Material names are colour-coded in `getColorClass()`. To add a new colour rule, add a `n.includes("material keyword")` check to the appropriate colour branch (or add a new CSS class and branch).
+### MW Recipes Sheet
 
-Current colour scheme:
-| Colour | CSS class | Examples |
-|---|---|---|
-| Orange | `.color-orange` | Druegarsteel Scrap, Fallen God's Ore, Abyssal Crystal |
-| Purple | `.color-purple` | Mushroom Log, Goristro Hide, Luminescent Darklake Water |
-| Blue | `.color-blue` | Terebinth |
-| Default (ink) | — | Anything unmatched |
+Loaded at startup by `loadMWRecipes()` from a separate Google Sheet (GID `1562621832`). Parsed by `parseMWRecipes()` into `intermediateRecipes: { itemName: [{ name, qty }] }`. Used only by `buildProductionChain()` for the card flip view. Does not affect the shopping list or gathering ledger — those use `craftingData`.
+
+**Important:** the MW sheet contains typo product names (e.g. `Purifierd Darklake Water`). `parseMWRecipes()` strips the leading quantity prefix (`"3x "`) from product cells before normalising through `normKey()`. If the chain shows wrong data, check for new product name typos in the sheet.
+
+**Yield table** (`RECIPE_YIELD`):
+
+| Item | Yield per run |
+|---|---|
+| Purified Darklake Water | 3 |
+| Mushroom Lumber | 4 |
+| Hardened Mushroom | 2 |
+| Living Fungi | 3 |
+| Marilith Charm | 4 |
+| Unknown Godsteel | 3 |
+| Lolthbead | 4 |
+| Soul Bead | 2 |
+| Lacquered Mushroom | 2 |
+| Lacquered Goristro Leather | 2 |
+| Spool of Marilithsilk | 2 |
+| Dreamer's Incense | 3 |
+| Dreamer's Medical Tea | 3 |
+| Everything else | 1 |
 
 ---
 
@@ -119,133 +124,167 @@ Current colour scheme:
 
 ### Data layer
 
-**`parseIngredient(resource)`**
-Converts a raw `"NNx Ingredient Name"` string into `{ qty: number, name: string }` using the regex `/^(\d+)x\s+(.+)$/`. Returns `{ qty: 0, name: resource }` as a fallback.
+**`parseIngredient(resource)`**  
+Converts `"NNx Ingredient Name"` → `{ qty: number, name: string }`. Fallback: `{ qty: 0, name: resource }`.
 
-**`parsedCraftingData`**
-Derived constant built once at startup. Each entry is a copy of `craftingData` with ingredients expanded to `{ qty, name, location }`. All rendering and filtering operates on this, never on the raw `craftingData`.
+**`parsedCraftingData`**  
+Built once at startup from `craftingData`. Each entry has ingredients expanded to `{ qty, name, location }`. All rendering reads this, never `craftingData` directly.
 
-**`getColorClass(name)`**
-Takes an ingredient name string, lowercases it, and returns a CSS class name (`'color-orange'`, `'color-purple'`, `'color-blue'`, or `''`).
+**`normKey(str)`**  
+Normalises ingredient/item name strings: converts curly quotes to straight quotes, collapses multiple spaces. Used as a consistent key for `locGathered` and `intermediateRecipes` lookups.
+
+**`parseMWRecipes(csvText)`**  
+Parses the MW Recipes CSV. Strips `"Nx "` prefix from product cells, then applies `normKey()`. Returns `{ normalisedProductName: [{ name, qty }] }`.
+
+**`buildProductionChain(itemName, qtyNeeded, visited)`**  
+Recursively resolves the full production chain for an item. Uses `intermediateRecipes` and `RECIPE_YIELD`. Returns a tree node: `{ name, qtyNeeded, isRaw, runsNeeded, yieldPerRun, produced, spare, children }`. `visited` prevents infinite loops on circular references.
 
 ### Rendering
 
-**`renderTable(data)`**
-Rebuilds the `#itemsGrid` DOM entirely from a supplied data array (a filtered/sorted subset of `parsedCraftingData`). Reads `appState.locGathered` and `appState.selectedItems` to set ingredient row done states and selection state. Does not use `appState.progress`. Called by `filterData()`.
+**`renderTable(data)`**  
+Rebuilds `#itemsGrid` from a filtered/sorted subset of `parsedCraftingData`. Each card is a `div.item-card[data-item]` containing a `.card-inner` with `.card-front` and `.card-back`. Reads `appState.locGathered` and `appState.selectedItems`.
 
-**`filterData()`**
-Reads the search input, class dropdown, and exclusive-class checkbox. Filters `parsedCraftingData`, sorts selected items to the top, then calls `renderTable()`. In the gathering ledger (`appState.view === 'location'`), delegates to `renderLocationTable()` instead. Also controls visibility of the "this class only" label (hidden in location view).
+**`flipCard(itemName)`**  
+Toggles `.flipped` on the card's `.card-inner`. On first flip, calls `buildProductionChain()` and `renderChainTree()` to populate `.chain-content`. Subsequent flips reuse the cached HTML.
 
-**`renderLocationTable()`**
-Builds `#locationTableBody` for the gathering ledger. Reads search, class, location filter, and `appState.abyssalMods` / `appState.locExcluded`. Flow:
-1. Resolves which location strings to match — for `"Abyssal Hunt"` expands to all checked mod strings; otherwise exact match
-2. Collects all matching item×ingredient `pairs` (before exclusion)
-3. Populates `locSourceMap` from all pairs (including excluded items, so `setLocGathered` can find sources even for excluded items)
-4. Rebuilds the **Filter Items** checklist in `#locItemChecks` from the unique items in `pairs`
-5. Filters `pairs` to `activePairs` by removing `locExcluded` items
-6. Groups `activePairs` by ingredient name into a `Map`
-7. Renders one `<tr>` per ingredient, sorted alphabetically. Each row: total qty needed, a gathered counter (value from `appState.locGathered[ingName]` if set, otherwise falls back to max of capped per-item progress), colour-coded ingredient name, comma-separated item list with individual qtys (items turn green via `.loc-item-met` when the counter meets their qty)
+**`renderChainTree(node, depth)`**  
+Converts a `buildProductionChain()` tree node into HTML. Raw materials get `.chain-raw` + a "raw" badge; crafted intermediates get `.chain-crafted` + run/yield info. Indented via CSS `--depth` custom property.
+
+**`filterData()`**  
+Reads search input, class dropdown, and exclusive-class checkbox. Filters `parsedCraftingData`, sorts selected items to the top, calls `renderTable()`. In location view delegates to `renderLocationTable()`; in inventory view delegates to `renderInventoryTable()`.
+
+**`renderLocationTable()`**  
+Builds `#locationTableBody`. Resolves location strings (including Abyssal Hunt mod expansion), collects matching ingredient pairs, populates `locSourceMap`, rebuilds the Filter Items checklist, filters by `locExcluded`, groups by ingredient, renders one `<tr>` per ingredient.
+
+**`renderInventoryTable()`**  
+Builds the All Resources table. Aggregates every ingredient across all of `parsedCraftingData` with gathered amounts from `appState.locGathered`.
 
 ### State management
 
 **`appState`**
-Central state object:
 ```js
 {
   selectedItems: new Set(),  // item names in the shopping list
-  progress: {},              // legacy — { itemName: [gathered, ...] } — read from localStorage, never written
+  progress: {},              // legacy — read from localStorage, never written
   locGathered: {},           // { ingredientName: rawNumber } — primary gathered tracking
-  abyssalMods: new Set(),    // which Abyssal Hunt mod names are currently checked
-  locExcluded: new Set(),    // item names excluded from gathering ledger totals
-  view: 'cards'              // 'cards' | 'location'
+  abyssalMods: new Set(),    // which Abyssal Hunt mods are checked
+  locExcluded: new Set(),    // items excluded from gathering ledger totals
+  view: 'cards',             // 'cards' | 'location' | 'inventory'
+  panelMode: 'shop',         // 'shop' | 'craft'
+  craftQty: {}               // { itemName: number } — Craft Planner quantities
 }
 ```
 
-**`locSourceMap`**
-Module-level `Map` populated by `renderLocationTable()`. Maps ingredient name → `[{ entry, ing, i }]` for every item that needs it at the current location (including excluded items). Used by `setLocGathered()` to update card DOM states.
+**`setLocGathered(ingName, value)`**  
+Stores raw value in `appState.locGathered`, performs targeted DOM updates (`.done` on ingredient rows, progress counters on affected cards), saves, calls `updatePanel()`, updates location table visuals.
 
-**`setLocGathered(ingName, value)`**
-Called by the gathering ledger counter `oninput`. Stores the raw entered value in `appState.locGathered[ingName]`, then performs targeted DOM updates:
-- Toggles `.done` on all `.ingredient-row[data-ing]` elements in the card grid that match the ingredient
-- Updates the "X / N ingredients complete" progress badge on affected cards (derived from `locGathered`)
-- Saves via `saveProgress()`, calls `updatePanel()`, and updates location table row visuals (opacity, `.loc-item-met` highlights)
+**`toggleSelected(itemName)`**  
+Adds/removes from `appState.selectedItems`, saves, calls `filterData()` to re-sort.
 
-Does not write to `appState.progress`.
-
-**`toggleSelected(itemName)`**
-Adds or removes an item from `appState.selectedItems`, saves to localStorage, then calls `filterData()` to trigger a re-render (which re-sorts selected items to the top).
-
-**`loadState()` / `saveProgress()` / `saveSelected()`**
-`loadState()` reads all three localStorage keys into `appState` at startup. `saveProgress()` writes both `synergy-crafting-progress` (legacy, currently a no-op write) and `synergy-crafting-loc-gathered`. `saveSelected()` writes `synergy-crafting-shopping`. Save functions are called immediately after any state mutation.
+**`setCraftQty(itemName, qty)`**  
+Updates `appState.craftQty[itemName]`, saves, re-renders the craft panel if active.
 
 ### Shopping list panel
 
-**`buildShoppingList()`**
-Iterates over `appState.selectedItems`, looks up each item in `parsedCraftingData`, and aggregates: sums `qty` and unions `locations` per ingredient name. Then sets `collected` for each ingredient from `appState.locGathered[ingName]` (capped at `qty`). Returns `{ ingredientName: { qty, locations, collected } }`.
+**`buildShoppingList()`**  
+Aggregates ingredients across `selectedItems`. Returns `{ ingredientName: { qty, locations, collected } }`. `collected` is capped at `qty` per ingredient from `locGathered`.
 
-The `collected` field is derived entirely from `locGathered` — the legacy `progress` fallback is not used.
+**`buildCraftList()`**  
+Similar to `buildShoppingList()` but multiplies each ingredient qty by `craftQty[itemName]` and returns `{ needed, have }` without capping — used for the feasibility check.
 
-**`updatePanel()`**
-Calls `buildShoppingList()` and renders the aggregated ingredient list into `#shoppingContent`. Sort order: incomplete first, then by location, then alphabetically. For each incomplete ingredient renders a "still needed" count (`.shop-remaining`) above the collected line. Fully gathered ingredients are dimmed and cross-struck. Updates the item count subtitle. Called after every state change that affects the shopping list.
+**`updatePanel()`**  
+Calls `buildShoppingList()` (shop mode) or `renderCraftPanel()` (craft mode) and renders into `#shoppingContent`. Sort order: incomplete first → by location → alphabetically.
 
-### Right panel
+**`renderCraftPanel()`**  
+Renders two sections: craft order inputs (item name + qty input per selected item) and a feasibility table (ingredient → needed → have → ✓/✗). Footer shows "All ingredients covered" or "Short on N ingredient(s)".
 
-**`showIngredientUses(name)`**
-Searches `parsedCraftingData` for all entries containing an ingredient with the given name. Renders a list of matching item names + required quantity into `#lookupContent`. Triggered by clicking any ingredient name button in card view.
+**`togglePanelMode()`**  
+Switches `appState.panelMode` between `'shop'` and `'craft'`, updates the toggle button label, calls `updatePanel()`.
 
-### Export
+### Mobile-specific
 
-**`exportRows()`**
-Calls `buildShoppingList()` and returns sorted rows (same order as `updatePanel`) plus metadata (date, item count). Used by all three export formatters.
+**`showIngredientUses(name)`**  
+On desktop: populates `#lookupContent` in the right panel. On mobile (when `.lookup-panel` is `display:none`): populates and opens `#ingredientModal` (a slide-up sheet). `closeIngredientModal(e)` handles backdrop tap and × button.
 
-**`exportTxt()` / `exportMd()` / `exportCsv()`**
-Each calls `exportRows()`, formats the aggregated data into the target format, and calls `downloadFile()`. Guards against empty shopping list with a shake animation on the button.
+**`toggleHeaderControls()`**  
+Toggles `open` class on `#headerControlsWrap` and `#headerCollapseBtn`. The controls div (`display:none` → `display:block`) contains the search, class filter, and view buttons.
 
-**`downloadFile(filename, content, mimeType)`**
-Creates a `Blob`, generates an object URL, triggers an `<a download>` click, and revokes the URL.
+**`togglePanelCollapse()`**  
+Toggles `open` class on `#panelBodyWrap`. The panel body (`display:none` → `display:flex`) contains `#shoppingContent` and `.panel-footer`.
 
-### Backup / Restore
-
-**`exportBackup()`**
-Packages `appState.selectedItems` and `appState.locGathered` into a versioned JSON object and calls `downloadFile()` with `application/json`. The JSON includes an `exported` ISO timestamp and `version: 1`.
-
-**`importBackup(input)`**
-Reads the selected file via `FileReader`, parses the JSON, validates `version === 1`, then writes `shopping` and `locGathered` back into `appState` and `localStorage`. Calls `filterData()`, `updatePanel()`, and (if in location view) `renderLocationTable()` to re-render from restored state.
+**`toggleCard(itemName)`**  
+Toggles `.expanded` on `div.item-card[data-item]`. The `.card-body` is `display:none` by default on mobile and `display:block` when `.expanded` is present.
 
 ### View switching
 
-**`toggleView()`**
-Toggles `appState.view` between `'cards'` and `'location'`. Shows/hides `#itemsGrid`, `#locationTableWrap`, and `#locationFilterWrap`. Swaps the right sidebar between `#lookupSection` (Used In) and `#locItemSection` (Filter Items). Updates the toggle button label. Calls `filterData()` when entering the gathering ledger (which hides the exclusive-class label and delegates to `renderLocationTable()`).
+**`toggleView()`**  
+Cycles between card view and location view. Shows/hides `#itemsGrid`, `#locationTableWrap`, `#locationFilterWrap`. Swaps right sidebar between `#lookupSection` and `#locItemSection`.
 
-**`onLocationChange()`**
-Called by the location dropdown `onchange`. Shows/hides `#abyssalModWrap`, clears `appState.locExcluded`, and calls `renderLocationTable()`.
+**`toggleInventoryView()`**  
+Toggles the All Resources inventory table. Manages `appState.view` and visibility of `#inventoryTableWrap`.
 
-**`toggleAbyssalMod(modName)`**
-Adds/removes a mod name from `appState.abyssalMods` and calls `renderLocationTable()`.
+### Export / Backup
 
-**`toggleLocItem(itemName)`**
-Adds/removes an item name from `appState.locExcluded` and calls `renderLocationTable()`.
+**`exportRows()`** — calls `buildShoppingList()`, returns sorted rows + metadata. Used by all three exporters.
+
+**`exportTxt()` / `exportMd()` / `exportCsv()`** — format and download the shopping list.
+
+**`exportBackup()` / `importBackup(input)`** — JSON round-trip for `selectedItems`, `locGathered`, and `craftQty`.
 
 ---
 
 ## CSS Organisation
 
-All styles live in the single `<style>` block. Organised by component:
+All styles live in the single `<style>` block, ordered:
 
 | Section | What it covers |
 |---|---|
 | `:root` variables | `--parchment`, `--ink`, `--gold`, `--crimson`, `--card-bg` |
-| Layout | `.ledger-container`, `.main-content`, `.shopping-panel`, `.lookup-panel` |
-| Sticky header | `.sticky-header`, `.header-section`, `.controls` |
-| Cards | `.items-grid`, `.item-card`, `.card-header`, `.card-body` |
-| Ingredients | `.ingredient-row`, `.qty`, `.name-btn` |
+| Body / layout | `body`, `.ledger-container`, `.main-content` |
+| Shopping panel body wrapper | `.panel-body-wrap` (desktop: always flex; mobile: collapsible) |
+| Shopping panel collapse btn | `.panel-collapse-btn` (desktop: hidden; mobile: visible) |
+| **`@media (max-width: 800px)`** | All mobile overrides in one block — see below |
+| Inputs / selects | `input`, `select` global styles |
+| Item grid / cards | `.items-grid`, `.item-card`, `.card-inner`, `.card-front`, `.card-back` |
+| Card flip | `.card-inner.flipped`, `backface-visibility`, chain tree styles |
+| Card header / body | `.card-header`, `.card-body`, `.ingredient-row`, `.qty`, `.name-btn` |
 | Colour coding | `.color-orange`, `.color-purple`, `.color-blue` |
 | Done state | `.ingredient-row.done` overrides |
-| Shopping panel | `.panel-header`, `.panel-content`, `.panel-footer`, `.shop-ingredient-row`, `.shop-remaining`, `.shop-collected` |
-| Backup buttons | `.backup-btn-row`, `.backup-btn` |
-| Export buttons | `.export-btn-row`, `.export-btn` |
-| Ingredient lookup | `.lookup-panel`, `.lookup-header`, `.lookup-item-row` |
-| Location view table | `.view-toggle-btn`, `.loc-table`, `.loc-needed`, `.loc-ingredient`, `.loc-items-cell`, `.counter-input` |
-| Location item labels | `.loc-item-label`, `.loc-item-met` (green when gathered ≥ item qty), `.loc-item-sep` |
-| Help modal | `.help-modal`, `.help-modal-box`, `.help-modal-header`, `.help-modal-body` |
-| Responsive | `@media (max-width: 800px)` overrides |
+| Shopping panel chrome | `.panel-header`, `.panel-title-row`, `.panel-content`, `.panel-footer` |
+| Shopping panel mode btn | `.panel-mode-btn` (Craft toggle) |
+| Craft planner | `.craft-order-row`, `.craft-qty-input`, `.craft-feasibility`, `.craft-summary` |
+| Export / backup buttons | `.export-btn-row`, `.backup-btn-row` |
+| Ingredient lookup panel | `.lookup-panel`, `.lookup-header`, `.lookup-item-row` |
+| Location table | `.loc-table`, `.loc-needed`, `.loc-ingredient`, `.counter-input` |
+| Location item labels | `.loc-item-label`, `.loc-item-met`, `.loc-item-sep` |
+| Help modal | `.help-modal`, `.help-modal-box` |
+| Ingredient modal (mobile) | `.ingredient-modal`, `.ingredient-modal-box` (slide-up sheet) |
+| Site footer | `.site-footer` |
+
+### Mobile media query block (`@media (max-width: 800px)`)
+
+Contains all responsive overrides in one place:
+- Single-column layout (shopping panel → main content)
+- Right sidebar (`lookup-panel`) hidden
+- Header collapse: `.header-collapse-btn` shown; `.header-controls-wrap` hidden by default
+- Shopping panel collapse: `.panel-collapse-btn` shown; `.panel-body-wrap` hidden by default
+- Card collapse: `.card-body` hidden by default; `.item-card.expanded .card-body` shown; `.item-title::after` chevron indicator
+
+---
+
+## Adding New Features
+
+### Adding a new view
+1. Add a button to `.view-btn-row` in the HTML
+2. Add a new `appState.view` value
+3. Add a toggle function following the pattern of `toggleView()` / `toggleInventoryView()`
+4. Add the table/content wrapper HTML inside `.main-content`
+5. Update `filterData()` to delegate to the new renderer when the view is active
+
+### Adding a new panel mode
+1. Add a state value to `appState.panelMode`
+2. Add a rendering function following `renderCraftPanel()`
+3. Add a branch in `updatePanel()` to call it
+
+### Updating crafting data
+Edit the `craftingData` array directly in `crafting-ledger.html`. Item names are primary keys — changing a name orphans existing shopping list saves for that item. Ingredient names must match the MW Recipes sheet (after `normKey()` normalisation) for the production chain to resolve correctly.
