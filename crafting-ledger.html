@@ -250,6 +250,16 @@
     .help-modal-body li { margin-bottom: 4px; }
     .help-modal-body strong { color: var(--crimson); }
 
+    /* Mobile header collapse */
+    .header-collapse-btn {
+        display: none;
+    }
+
+    .header-controls-wrap {
+        overflow: hidden;
+        transition: max-height 0.32s ease, opacity 0.25s ease;
+    }
+
     @media (max-width: 800px) {
         .controls { grid-template-columns: 1fr; }
         h1 { font-size: 1.8rem; }
@@ -262,6 +272,44 @@
             border-bottom: 3px solid var(--gold);
         }
         .lookup-panel { display: none; }
+
+        .header-collapse-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 6px auto 0 auto;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: 'Lora', serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .header-collapse-btn:hover {
+            background: var(--gold);
+            color: #fff;
+        }
+        .header-collapse-btn .chevron {
+            display: inline-block;
+            transition: transform 0.28s ease;
+            font-style: normal;
+        }
+        .header-collapse-btn.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .header-controls-wrap {
+            max-height: 0;
+            opacity: 0;
+        }
+        .header-controls-wrap.open {
+            max-height: 400px;
+            opacity: 1;
+        }
     }
 
     input, select {
@@ -1054,30 +1102,36 @@
                 </p>
             </div>
 
-            <div class="controls">
-                <div class="search-wrapper">
-                    <input type="text" id="searchInput" placeholder="Search item or class..." onkeyup="filterData()">
-                </div>
-                <div class="filter-wrapper">
-                    <select id="classFilter" onchange="filterData()">
-                        <option value="All">All Classes</option>
-                        <option value="Barbarian">Barbarian</option>
-                        <option value="Bard">Bard</option>
-                        <option value="Cleric">Cleric</option>
-                        <option value="Fighter">Fighter</option>
-                        <option value="Paladin">Paladin</option>
-                        <option value="Ranger">Ranger</option>
-                        <option value="Rogue">Rogue</option>
-                        <option value="Warlock">Warlock</option>
-                        <option value="Wizard">Wizard</option>
-                    </select>
-                    <label id="exclusiveLabel" style="display:none; align-items:center; gap:5px; font-size:0.8rem; white-space:nowrap; cursor:pointer;">
-                        <input type="checkbox" id="exclusiveFilter" onchange="filterData()"> this class only
-                    </label>
-                </div>
-                <div class="view-btn-row">
-                    <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Gathering ledger by location</button>
-                    <button class="view-toggle-btn" id="inventoryToggleBtn" onclick="toggleInventoryView()">&#9776; All Resources</button>
+            <button class="header-collapse-btn" id="headerCollapseBtn" onclick="toggleHeaderControls()" aria-expanded="false" aria-controls="headerControlsWrap">
+                Filters &amp; View <i class="chevron">&#9660;</i>
+            </button>
+
+            <div class="header-controls-wrap" id="headerControlsWrap">
+                <div class="controls">
+                    <div class="search-wrapper">
+                        <input type="text" id="searchInput" placeholder="Search item or class..." onkeyup="filterData()">
+                    </div>
+                    <div class="filter-wrapper">
+                        <select id="classFilter" onchange="filterData()">
+                            <option value="All">All Classes</option>
+                            <option value="Barbarian">Barbarian</option>
+                            <option value="Bard">Bard</option>
+                            <option value="Cleric">Cleric</option>
+                            <option value="Fighter">Fighter</option>
+                            <option value="Paladin">Paladin</option>
+                            <option value="Ranger">Ranger</option>
+                            <option value="Rogue">Rogue</option>
+                            <option value="Warlock">Warlock</option>
+                            <option value="Wizard">Wizard</option>
+                        </select>
+                        <label id="exclusiveLabel" style="display:none; align-items:center; gap:5px; font-size:0.8rem; white-space:nowrap; cursor:pointer;">
+                            <input type="checkbox" id="exclusiveFilter" onchange="filterData()"> this class only
+                        </label>
+                    </div>
+                    <div class="view-btn-row">
+                        <button class="view-toggle-btn" id="viewToggleBtn" onclick="toggleView()">&#9783; Gathering ledger by location</button>
+                        <button class="view-toggle-btn" id="inventoryToggleBtn" onclick="toggleInventoryView()">&#9776; All Resources</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1839,7 +1893,7 @@
             appState.locExcluded.delete(itemName);
         } else {
             appState.locExcluded.add(itemName);
-        }
+        
         renderLocationTable();
     }
 
@@ -2439,6 +2493,14 @@
         const modal = document.getElementById('helpModal');
         const isOpen = modal.classList.toggle('open');
         modal.setAttribute('aria-hidden', !isOpen);
+    }
+
+    function toggleHeaderControls() {
+        const wrap = document.getElementById('headerControlsWrap');
+        const btn  = document.getElementById('headerCollapseBtn');
+        const open = wrap.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open);
     }
 
     document.addEventListener('keydown', e => {
