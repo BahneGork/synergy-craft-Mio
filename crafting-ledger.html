@@ -1186,11 +1186,18 @@
 
     .shop-location strong { color: var(--gold); }
 
-    /* --- MODE TOGGLE BUTTON (always visible in header) --- */
-    .mode-toggle-btn {
+    /* --- LEFT HEADER CONTROLS (mode toggle + auto-save activate) --- */
+    .header-left-controls {
         position: absolute;
         top: 20px;
         left: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        align-items: flex-start;
+    }
+
+    .mode-toggle-btn {
         background: transparent;
         border: 1px solid var(--gold);
         color: var(--gold);
@@ -1204,12 +1211,97 @@
         white-space: nowrap;
     }
     .mode-toggle-btn:hover { background: var(--gold); color: #fff; }
+
+    .autosave-activate-btn {
+        background: transparent;
+        border: 1px solid rgba(176,141,68,0.45);
+        color: var(--gold);
+        font-family: 'Lora', serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        white-space: nowrap;
+        opacity: 0.75;
+    }
+    .autosave-activate-btn:hover { background: var(--gold); color: #fff; opacity: 1; border-color: var(--gold); }
+
+    .autosave-badge {
+        display: none;
+        font-size: 0.68rem;
+        color: #4caf50;
+        font-family: 'Lora', serif;
+        font-style: italic;
+    }
+
+    /* Auto-save modal */
+    .autosave-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        z-index: 3000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .autosave-modal.open { display: flex; }
+    .autosave-modal-box {
+        background-color: var(--parchment);
+        background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        border: 3px solid var(--gold);
+        max-width: 380px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        border-radius: 4px;
+    }
+    .autosave-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        border-bottom: 2px solid var(--gold);
+    }
+    .autosave-modal-header h2 {
+        font-family: 'MedievalSharp', cursive;
+        color: var(--crimson);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+    .autosave-modal-body {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .autosave-modal-body p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #555;
+        line-height: 1.5;
+    }
+    .autosave-submit-btn {
+        padding: 9px;
+        background: transparent;
+        border: 2px solid var(--gold);
+        color: var(--gold);
+        font-family: 'Lora', serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: background 0.2s, color 0.2s;
+    }
+    .autosave-submit-btn:hover { background: var(--gold); color: #fff; }
+
     @media (max-width: 800px) {
-        .mode-toggle-btn {
+        .header-left-controls {
             position: static;
-            display: block;
-            width: fit-content;
-            margin: 0 auto 12px;
+            align-items: center;
+            margin-bottom: 12px;
         }
     }
 
@@ -1277,7 +1369,11 @@
     <div class="main-content">
         <div class="sticky-header">
             <div class="header-section" style="position:relative;">
-                <button class="mode-toggle-btn" id="modeToggleBtn" onclick="toggleUIMode()">&#9881; Advanced</button>
+                <div class="header-left-controls">
+                    <button class="mode-toggle-btn" id="modeToggleBtn" onclick="toggleUIMode()">&#9881; Advanced</button>
+                    <button class="autosave-activate-btn" id="autoSaveActivateBtn" onclick="openAutoSaveModal()" style="display:none;">&#9729; Activate auto-save</button>
+                    <span class="autosave-badge" id="autoSaveBadge"></span>
+                </div>
                 <button class="help-btn" onclick="toggleHelp()" aria-label="Help">?</button>
                 <h1>Masterwork Crafting Ledger</h1>
                 <span id="dataSourceBadge" title="Where crafting data is loaded from" style="display:block; font-size:0.7rem; opacity:0.5; font-family:'Lora',serif; margin-top:4px;"></span>
@@ -1385,6 +1481,22 @@
         </div>
     </div>
 
+</div>
+
+<!-- Auto-save modal -->
+<div id="autoSaveModal" class="autosave-modal" onclick="closeAutoSaveModal(event)">
+    <div class="autosave-modal-box" onclick="event.stopPropagation()">
+        <div class="autosave-modal-header">
+            <h2>Activate Auto-Save</h2>
+            <button class="help-close-btn" onclick="closeAutoSaveModal()">&#10005;</button>
+        </div>
+        <div class="autosave-modal-body">
+            <p>Enter your email address. It is used only as an identifier — your data is saved to the server so it can be restored after a crash.</p>
+            <input type="email" id="autoSaveEmailInput" placeholder="your@email.com" onkeydown="if(event.key==='Enter') submitAutoSave()">
+            <button class="autosave-submit-btn" onclick="submitAutoSave()">Activate</button>
+            <p id="autoSaveModalMsg" style="display:none; color:var(--crimson); font-size:0.8rem;"></p>
+        </div>
+    </div>
 </div>
 
 <footer class="site-footer">
@@ -1969,7 +2081,9 @@
         view: 'cards',
         craftQty: {},            // itemName → desired craft quantity (craft planner)
         panelMode: 'shop',       // 'shop' | 'craft'
-        uiMode: 'simple'         // 'simple' | 'advanced'
+        uiMode: 'simple',        // 'simple' | 'advanced'
+        cloudHash: null,         // SHA-256 hash of email for server saves
+        cloudEmail: null         // email address (display only, stays local)
     };
 
     // localStorage helpers with fallback for browsers that block it on file://
@@ -2000,6 +2114,10 @@
             if (cq) appState.craftQty = JSON.parse(cq);
             const uiMode = storage.getItem('synergy-crafting-ui-mode');
             appState.uiMode = uiMode || 'simple';
+            const ch = storage.getItem('synergy-crafting-cloud-hash');
+            if (ch) appState.cloudHash = ch;
+            const ce = storage.getItem('synergy-crafting-cloud-email');
+            if (ce) appState.cloudEmail = ce;
         } catch (e) {
             appState.progress = {};
             appState.selectedItems = new Set();
@@ -2012,14 +2130,144 @@
     function saveProgress() {
         storage.setItem('synergy-crafting-progress', JSON.stringify(appState.progress));
         storage.setItem('synergy-crafting-loc-gathered', JSON.stringify(appState.locGathered));
+        storage.setItem('synergy-crafting-save-ts', Date.now().toString());
+        scheduleCloudSave();
     }
 
     function saveCraftQty() {
         storage.setItem('synergy-crafting-craft-qty', JSON.stringify(appState.craftQty));
+        storage.setItem('synergy-crafting-save-ts', Date.now().toString());
+        scheduleCloudSave();
     }
 
     function saveUIMode() {
         storage.setItem('synergy-crafting-ui-mode', appState.uiMode);
+    }
+
+    // --- CLOUD AUTO-SAVE ---
+
+    async function hashEmail(email) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email.trim().toLowerCase()));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function doCloudSave() {
+        if (!appState.cloudHash) return;
+        const payload = {
+            version: 1,
+            timestamp: Date.now(),
+            selectedItems: [...appState.selectedItems],
+            locGathered: appState.locGathered,
+            craftQty: appState.craftQty
+        };
+        try {
+            await fetch('save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hash: appState.cloudHash, data: payload })
+            });
+        } catch(e) { /* silent fail — offline or local file */ }
+    }
+
+    let cloudSaveTimer = null;
+    function scheduleCloudSave() {
+        if (!appState.cloudHash) return;
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = setTimeout(doCloudSave, 2000);
+    }
+
+    async function cloudLoad(hash) {
+        try {
+            const resp = await fetch('load.php?hash=' + encodeURIComponent(hash));
+            if (!resp.ok) return null;
+            return await resp.json();
+        } catch(e) { return null; }
+    }
+
+    function updateAutoSaveUI() {
+        const activateBtn = document.getElementById('autoSaveActivateBtn');
+        const badge = document.getElementById('autoSaveBadge');
+        if (appState.cloudHash) {
+            activateBtn.style.display = 'none';
+            badge.style.display = 'inline';
+            badge.textContent = '\u2601 Auto-saving \u00b7 ' + appState.cloudEmail;
+        } else {
+            activateBtn.style.display = '';
+            badge.style.display = 'none';
+        }
+    }
+
+    function openAutoSaveModal() {
+        document.getElementById('autoSaveModal').classList.add('open');
+        document.getElementById('autoSaveEmailInput').value = '';
+        const msg = document.getElementById('autoSaveModalMsg');
+        msg.style.display = 'none';
+        setTimeout(() => document.getElementById('autoSaveEmailInput').focus(), 50);
+    }
+
+    function closeAutoSaveModal(e) {
+        if (e && e.target !== document.getElementById('autoSaveModal')) return;
+        document.getElementById('autoSaveModal').classList.remove('open');
+    }
+
+    async function submitAutoSave() {
+        const email = document.getElementById('autoSaveEmailInput').value.trim();
+        const msg = document.getElementById('autoSaveModalMsg');
+        if (!email || !email.includes('@')) {
+            msg.textContent = 'Please enter a valid email address.';
+            msg.style.display = 'block';
+            return;
+        }
+
+        const btn = document.querySelector('.autosave-submit-btn');
+        btn.textContent = 'Activating\u2026';
+        btn.disabled = true;
+
+        const hash = await hashEmail(email);
+        const cloudData = await cloudLoad(hash);
+
+        if (cloudData && cloudData.timestamp) {
+            const localTs = parseInt(storage.getItem('synergy-crafting-save-ts') || '0');
+            if (cloudData.timestamp > localTs) {
+                // Cloud is newer — restore it
+                appState.selectedItems = new Set(cloudData.selectedItems || []);
+                appState.locGathered = cloudData.locGathered || {};
+                appState.craftQty = cloudData.craftQty || {};
+                saveProgress();
+                saveSelected();
+                saveCraftQty();
+                filterData();
+                updatePanel();
+            }
+        }
+
+        appState.cloudHash = hash;
+        appState.cloudEmail = email;
+        storage.setItem('synergy-crafting-cloud-hash', hash);
+        storage.setItem('synergy-crafting-cloud-email', email);
+
+        btn.textContent = 'Activate';
+        btn.disabled = false;
+        document.getElementById('autoSaveModal').classList.remove('open');
+        updateAutoSaveUI();
+        doCloudSave(); // immediately push current state
+    }
+
+    async function initCloudRestore() {
+        if (!appState.cloudHash) return;
+        const cloudData = await cloudLoad(appState.cloudHash);
+        if (!cloudData || !cloudData.timestamp) return;
+        const localTs = parseInt(storage.getItem('synergy-crafting-save-ts') || '0');
+        if (cloudData.timestamp > localTs) {
+            appState.selectedItems = new Set(cloudData.selectedItems || []);
+            appState.locGathered = cloudData.locGathered || {};
+            appState.craftQty = cloudData.craftQty || {};
+            saveProgress();
+            saveSelected();
+            saveCraftQty();
+            filterData();
+            updatePanel();
+        }
     }
 
     /** Applies the current uiMode to the DOM — sets body[data-mode] and updates the toggle button label. */
@@ -2051,6 +2299,8 @@
 
     function saveSelected() {
         storage.setItem('synergy-crafting-shopping', JSON.stringify([...appState.selectedItems]));
+        storage.setItem('synergy-crafting-save-ts', Date.now().toString());
+        scheduleCloudSave();
     }
 
     /** Shows or hides the Abyssal Hunt mod checkboxes depending on which location is selected, resets item exclusions, then re-renders the table. */
@@ -2932,10 +3182,12 @@
     });
 
     loadState();
-    applyUIMode();    // set body[data-mode] before first render so CSS is correct from the start
+    applyUIMode();
+    updateAutoSaveUI();
     filterData();
     updatePanel();
-    loadFromSheet();  // async — re-renders if sheet loads; falls back silently if not
+    loadFromSheet();
+    initCloudRestore(); // async — silently restores from cloud if local data is older
 </script>
 
 <!-- Mobile Ingredient Lookup Modal -->
