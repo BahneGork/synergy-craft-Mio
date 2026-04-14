@@ -1284,10 +1284,8 @@
         margin-bottom: 10px;
     }
     .autosave-submit-btn {
-        width: 100%;
-        display: block;
-        box-sizing: border-box;
         padding: 10px;
+        text-align: center;
         background: transparent;
         border: 2px solid var(--gold);
         color: var(--gold);
@@ -1297,6 +1295,7 @@
         cursor: pointer;
         border-radius: 3px;
         transition: background 0.2s, color 0.2s;
+        user-select: none;
     }
     .autosave-submit-btn:hover { background: var(--gold); color: #fff; }
 
@@ -1488,7 +1487,7 @@
 
 <!-- Auto-save modal -->
 <div id="autoSaveModal" class="autosave-modal" onclick="closeAutoSaveModal(event)">
-    <div class="autosave-modal-box" onclick="event.stopPropagation()">
+    <div class="autosave-modal-box">
         <div class="autosave-modal-header">
             <h2>Activate Auto-Save</h2>
             <button class="help-close-btn" onclick="closeAutoSaveModal()">&#10005;</button>
@@ -1496,8 +1495,8 @@
         <div class="autosave-modal-body">
             <p>Your email is hashed and used as an ID to save your inventory server-side. If your browser data is ever wiped, just re-activate auto-save with the same email to restore it.</p>
             <input type="email" id="autoSaveEmailInput" placeholder="your@email.com" onkeydown="if(event.key==='Enter') submitAutoSave()">
-            <button class="autosave-submit-btn" onclick="submitAutoSave()">Activate</button>
-            <p id="autoSaveModalMsg" style="display:none; color:var(--crimson); font-size:0.8rem;"></p>
+            <div class="autosave-submit-btn" id="autoSaveSubmitBtn" onclick="submitAutoSave()">Activate</div>
+            <p id="autoSaveModalMsg" style="display:none; color:var(--crimson); font-size:0.8rem; margin-top:8px;"></p>
         </div>
     </div>
 </div>
@@ -2222,9 +2221,10 @@
             return;
         }
 
-        const btn = document.querySelector('.autosave-submit-btn');
+        const btn = document.getElementById('autoSaveSubmitBtn');
         btn.textContent = 'Activating\u2026';
-        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.6';
         msg.style.display = 'none';
 
         try {
@@ -2258,7 +2258,8 @@
             msg.style.display = 'block';
         } finally {
             btn.textContent = 'Activate';
-            btn.disabled = false;
+            btn.style.pointerEvents = '';
+            btn.style.opacity = '';
         }
     }
 
