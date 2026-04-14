@@ -1491,7 +1491,7 @@
             <button class="help-close-btn" onclick="closeAutoSaveModal()">&#10005;</button>
         </div>
         <div class="autosave-modal-body">
-            <p>Enter your email address. It is used only as an identifier — your data is saved to the server so it can be restored after a crash.</p>
+            <p>Your email is hashed and used as an ID to save your inventory server-side. If your browser data is ever wiped, just re-activate auto-save with the same email to restore it.</p>
             <input type="email" id="autoSaveEmailInput" placeholder="your@email.com" onkeydown="if(event.key==='Enter') submitAutoSave()">
             <button class="autosave-submit-btn" onclick="submitAutoSave()">Activate</button>
             <p id="autoSaveModalMsg" style="display:none; color:var(--crimson); font-size:0.8rem;"></p>
