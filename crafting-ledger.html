@@ -1284,7 +1284,10 @@
         line-height: 1.5;
     }
     .autosave-submit-btn {
-        padding: 9px;
+        width: 100%;
+        display: block;
+        box-sizing: border-box;
+        padding: 10px;
         background: transparent;
         border: 2px solid var(--gold);
         color: var(--gold);
@@ -2222,35 +2225,41 @@
         const btn = document.querySelector('.autosave-submit-btn');
         btn.textContent = 'Activating\u2026';
         btn.disabled = true;
+        msg.style.display = 'none';
 
-        const hash = await hashEmail(email);
-        const cloudData = await cloudLoad(hash);
+        try {
+            const hash = await hashEmail(email);
+            const cloudData = await cloudLoad(hash);
 
-        if (cloudData && cloudData.timestamp) {
-            const localTs = parseInt(storage.getItem('synergy-crafting-save-ts') || '0');
-            if (cloudData.timestamp > localTs) {
-                // Cloud is newer — restore it
-                appState.selectedItems = new Set(cloudData.selectedItems || []);
-                appState.locGathered = cloudData.locGathered || {};
-                appState.craftQty = cloudData.craftQty || {};
-                saveProgress();
-                saveSelected();
-                saveCraftQty();
-                filterData();
-                updatePanel();
+            if (cloudData && cloudData.timestamp) {
+                const localTs = parseInt(storage.getItem('synergy-crafting-save-ts') || '0');
+                if (cloudData.timestamp > localTs) {
+                    appState.selectedItems = new Set(cloudData.selectedItems || []);
+                    appState.locGathered = cloudData.locGathered || {};
+                    appState.craftQty = cloudData.craftQty || {};
+                    saveProgress();
+                    saveSelected();
+                    saveCraftQty();
+                    filterData();
+                    updatePanel();
+                }
             }
+
+            appState.cloudHash = hash;
+            appState.cloudEmail = email;
+            storage.setItem('synergy-crafting-cloud-hash', hash);
+            storage.setItem('synergy-crafting-cloud-email', email);
+
+            document.getElementById('autoSaveModal').classList.remove('open');
+            updateAutoSaveUI();
+            doCloudSave();
+        } catch(err) {
+            msg.textContent = 'Error: ' + (err.message || 'Could not activate. Try again.');
+            msg.style.display = 'block';
+        } finally {
+            btn.textContent = 'Activate';
+            btn.disabled = false;
         }
-
-        appState.cloudHash = hash;
-        appState.cloudEmail = email;
-        storage.setItem('synergy-crafting-cloud-hash', hash);
-        storage.setItem('synergy-crafting-cloud-email', email);
-
-        btn.textContent = 'Activate';
-        btn.disabled = false;
-        document.getElementById('autoSaveModal').classList.remove('open');
-        updateAutoSaveUI();
-        doCloudSave(); // immediately push current state
     }
 
     async function initCloudRestore() {
